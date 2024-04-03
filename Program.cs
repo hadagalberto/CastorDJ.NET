@@ -38,8 +38,7 @@ namespace CastorDJ
                     services.AddLavalink();
                     services.ConfigureLavalink(config =>
                     {
-                        //config.BaseAddress = new Uri("http://localhost:2333");
-                        config.WebSocketUri = new Uri("ws://localhost:2333/v4/websocket");
+                        config.BaseAddress = new Uri("http://localhost:2333/");
                         config.Passphrase = "senhasegura";
                         config.ReadyTimeout = TimeSpan.FromSeconds(15);
                     });
