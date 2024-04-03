@@ -1,8 +1,8 @@
 ﻿using CastorDJ.Player;
 using CastorDJ.Services;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Lavalink4NET;
 using Lavalink4NET.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,8 +25,8 @@ namespace CastorDJ
                     {
                         AlwaysDownloadUsers = true,
                         MessageCacheSize = 10000,
-                        LogLevel = Discord.LogSeverity.Verbose,
-                        GatewayIntents = Discord.GatewayIntents.GuildMembers | Discord.GatewayIntents.Guilds
+                        LogLevel = LogSeverity.Verbose,
+                        GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates,
                     });
 
                     services.AddSingleton(discordClient);
