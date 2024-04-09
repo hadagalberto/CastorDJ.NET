@@ -32,7 +32,7 @@ namespace CastorDJ.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _discord.Ready += () => _interactions.RegisterCommandsGloballyAsync();
+            _discord.Ready += () => _interactions.RegisterCommandsGloballyAsync(true);
 
             await _interactions.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 

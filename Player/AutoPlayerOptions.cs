@@ -2,7 +2,7 @@
 
 namespace CastorDJ.Player
 {
-    public sealed record class CustomPlayerOptions : QueuedLavalinkPlayerOptions
+    public sealed record class AutoPlayerOptions : QueuedLavalinkPlayerOptions
     {
     }
 }

@@ -1,7 +1,7 @@
 services:
   lavalink:
     # pin the image version to Lavalink v4
-    image: ghcr.io/lavalink-devs/lavalink:4
+    image: ghcr.io/lavalink-devs/lavalink:v4-update-lp-alpine
     container_name: lavalink
     restart: unless-stopped
     volumes:
@@ -17,6 +17,17 @@ services:
     ports:
       # you only need this if you want to make your lavalink accessible from outside of containers
       - "2333:2333"
+  castordj:
+    build:
+       context: .
+       dockerfile: Dockerfile
+    container_name: castordj
+    restart: unless-stopped
+    depends_on:
+      - lavalink
+    networks:
+      - lavalink
+
 networks:
   # create a lavalink network you can add other containers to, to give them access to Lavalink
   lavalink:

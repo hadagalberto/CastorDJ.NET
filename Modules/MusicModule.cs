@@ -9,6 +9,11 @@ using Lavalink4NET.Extensions;
 using System;
 using System.Threading.Tasks;
 using Lavalink4NET.Players.Queued;
+using CastorDJ.AutoCompleteHandlers;
+using Discord;
+using CastorDJ.Player;
+using CastorDJ.Factories;
+using System.Text;
 
 namespace CastorDJ.Modules
 {
@@ -36,7 +41,7 @@ namespace CastorDJ.Modules
         ///     Disconnects from the current voice channel connected to asynchronously.
         /// </summary>
         /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("disconnect", "Disconnects from the current voice channel connected to", runMode: RunMode.Async)]
+        [SlashCommand("disconecta", "Desconecta o player do canal de voz", runMode: RunMode.Async)]
         public async Task Disconnect()
         {
             var player = await GetPlayerAsync().ConfigureAwait(false);
@@ -47,7 +52,7 @@ namespace CastorDJ.Modules
             }
 
             await player.DisconnectAsync().ConfigureAwait(false);
-            await RespondAsync("Disconnected.").ConfigureAwait(false);
+            await RespondAsync("Desconectado.").ConfigureAwait(false);
         }
 
         /// <summary>
@@ -56,10 +61,8 @@ namespace CastorDJ.Modules
         /// <param name="query">the search query</param>
         /// <returns>a task that represents the asynchronous operation</returns>
         [SlashCommand("play", description: "Plays music", runMode: RunMode.Async)]
-        public async Task Play(string query)
+        public async Task Play([Summary("música"), Autocomplete(typeof(MusicAutoCompleteHandler))] string query)
         {
-            await DeferAsync().ConfigureAwait(false);
-
             var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
 
             if (player is null)
@@ -77,158 +80,245 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            var position = await player.PlayAsync(track).ConfigureAwait(false);
+            var count = await player.PlayAsync(track);
+            var position = player.QueueIndex;
 
-            if (position is 0)
+            var bundle = new ComponentBuilder()
+                .WithButton("⏮️", "previous_track", ButtonStyle.Primary)
+                .WithButton(player.IsPaused ? "▶️" : "⏸️", "play_pause", player.IsPaused ? ButtonStyle.Success : ButtonStyle.Secondary)
+                .WithButton("⏭️", "next_track", ButtonStyle.Primary)
+                .Build();
+
+            if (player.Queue.Count == 1)
             {
-                await FollowupAsync($"🔈 Playing: {track.Uri}").ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
+
+                var embed = new EmbedBuilder()
+                    .WithTitle("🔈 Tocando")
+                    .WithDescription(track.Title)
+                    .WithUrl(track.Uri.ToString())
+                    .WithThumbnailUrl(track.ArtworkUri.ToString())
+                    .WithFooter($"Posição: {position + 1}")
+                    .Build();
+
+                var sendMessage = await FollowupAsync(embed: embed, components: bundle).ConfigureAwait(false);
+
+                player.ControlMessage = sendMessage;
+                
             }
             else
             {
-                await FollowupAsync($"🔈 Added to queue: {track.Uri}").ConfigureAwait(false);
+                await RespondAsync($"{track.Title} adicionado à fila.", ephemeral: true).ConfigureAwait(false);
             }
         }
 
-        /// <summary>
-        ///     Shows the track position asynchronously.
-        /// </summary>
-        /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("position", description: "Shows the track position", runMode: RunMode.Async)]
-        public async Task Position()
+        [SlashCommand("fila", "Mostra a fila atual", runMode: RunMode.Async)]
+        public async Task Queue()
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
 
             if (player is null)
             {
+                await RespondAsync("Fila vazia!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            if (player.CurrentItem is null)
+            if (player.Queue.Count is 0)
             {
-                await RespondAsync("Nothing playing!").ConfigureAwait(false);
+                await RespondAsync("Fila vazia!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            await RespondAsync($"Position: {player.Position?.Position} / {player.CurrentTrack.Duration}.").ConfigureAwait(false);
+            var queue = player.Queue;
+            var position = player.QueueIndex;
+
+            var textoFila = new StringBuilder();
+
+            textoFila.AppendLine("Fila atual:");
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                var item = queue[i];
+
+                if (i == position)
+                {
+                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Title}**");
+                }
+                else
+                {
+                    textoFila.AppendLine($"{i + 1} 🔈     {item.Title}");
+                }
+            }
+
+            await RespondAsync(textoFila.ToString(), ephemeral: true).ConfigureAwait(false);
         }
 
-        /// <summary>
-        ///     Stops the current track asynchronously.
-        /// </summary>
-        /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("stop", description: "Stops the current track", runMode: RunMode.Async)]
-        public async Task Stop()
+        [SlashCommand("similares", "Obtem a fila de músicas similares", runMode: RunMode.Async)]
+        public async Task GetSimilar()
         {
-            var player = await GetPlayerAsync(connectToVoiceChannel: false);
-
-            if (player is null)
-            {
-                return;
-            }
-
-            if (player.CurrentItem is null)
-            {
-                await RespondAsync("Nothing playing!").ConfigureAwait(false);
-                return;
-            }
-
-            await player.StopAsync().ConfigureAwait(false);
-            await RespondAsync("Stopped playing.").ConfigureAwait(false);
-        }
-
-        /// <summary>
-        ///     Updates the player volume asynchronously.
-        /// </summary>
-        /// <param name="volume">the volume (1 - 1000)</param>
-        /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("volume", description: "Sets the player volume (0 - 1000%)", runMode: RunMode.Async)]
-        public async Task Volume(int volume = 100)
-        {
-            if (volume is > 1000 or < 0)
-            {
-                await RespondAsync("Volume out of range: 0% - 1000%!").ConfigureAwait(false);
-                return;
-            }
-
             var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
 
             if (player is null)
             {
+                await RespondAsync("Fila de similares vazia!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            await player.SetVolumeAsync(volume / 100f).ConfigureAwait(false);
-            await RespondAsync($"Volume updated: {volume}%").ConfigureAwait(false);
+            if (player.Queue.Count is 0)
+            {
+                await RespondAsync("Fila de similares vazia!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            var queue = player.SimilarTracks;
+
+            var textoFila = new StringBuilder();
+
+            textoFila.AppendLine("Fila de músicas similares:");
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                var item = queue[i];
+                textoFila.AppendLine($"{i + 1} 🔈     {item.Title}");
+            }
+
+            await RespondAsync(textoFila.ToString(), ephemeral: true).ConfigureAwait(false);
         }
 
-        [SlashCommand("skip", description: "Skips the current track", runMode: RunMode.Async)]
-        public async Task Skip()
+        [ComponentInteraction("play_pause")]
+        public async Task PlayPauseAsync()
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: false);
 
             if (player is null)
             {
+                await RespondAsync("Erro ao pausar música!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            if (player.CurrentItem is null)
+            if (player.IsPaused)
             {
-                await RespondAsync("Nothing playing!").ConfigureAwait(false);
-                return;
-            }
-
-            await player.SkipAsync().ConfigureAwait(false);
-
-            var track = player.CurrentItem;
-
-            if (track is not null)
-            {
-                await RespondAsync($"Skipped. Now playing: {track.Track!.Uri}").ConfigureAwait(false);
+                await player.ResumeAsync().ConfigureAwait(false);
             }
             else
             {
-                await RespondAsync("Skipped. Stopped playing because the queue is now empty.").ConfigureAwait(false);
+                await player.PauseAsync().ConfigureAwait(false);
+            }
+
+            var position = player.QueueIndex;
+
+            var controlMessage = player.ControlMessage;
+
+            var bundle = new ComponentBuilder()
+                .WithButton("⏮️", "previous_track", ButtonStyle.Primary)
+                .WithButton(player.IsPaused ? "▶️" : "⏸️", "play_pause", player.IsPaused ? ButtonStyle.Success : ButtonStyle.Secondary)
+                .WithButton("⏭️", "next_track", ButtonStyle.Primary)
+                .Build();
+
+            if (controlMessage is not null)
+            {
+                await controlMessage.ModifyAsync(x => { x.Components = bundle; }).ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync("Play/Pause", ephemeral: true).ConfigureAwait(false);
             }
         }
 
-        [SlashCommand("pause", description: "Pauses the player.", runMode: RunMode.Async)]
-        public async Task PauseAsync()
+        [ComponentInteraction("next_track")]
+        public async Task NextTrackAsync()
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: false);
 
             if (player is null)
             {
+                await RespondAsync("Erro ao pular música!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            if (player.State is PlayerState.Paused)
+            try
             {
-                await RespondAsync("Player is already paused.").ConfigureAwait(false);
+                await player.NextTrackAsync().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException)
+            {
+                await RespondAsync("Não há mais músicas na fila.", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+            
+            if(player.CurrentItem is null || player.CurrentItem.Track is null)
+            {
+                await RespondAsync("Fila vazia!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            await player.PauseAsync().ConfigureAwait(false);
-            await RespondAsync("Paused.").ConfigureAwait(false);
+            var track = player.Queue.ElementAt(player.QueueIndex);
+
+            var position = player.QueueIndex;
+
+            var embed = new EmbedBuilder()
+                .WithTitle("🔈 Tocando")
+                .WithDescription(track.Title)
+                .WithUrl(track.Uri.ToString())
+                .WithThumbnailUrl(track.ArtworkUri.ToString())
+                .WithFooter($"Posição: {position + 1}")
+                .Build();
+
+            var controlMessage = player.ControlMessage;
+
+            if (controlMessage is not null)
+            {
+                await controlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync(embed: embed, ephemeral: true).ConfigureAwait(false);
+            }
         }
 
-        [SlashCommand("resume", description: "Resumes the player.", runMode: RunMode.Async)]
-        public async Task ResumeAsync()
+        [ComponentInteraction("previous_track")]
+        public async Task PreviousTrackAsync()
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: false);
 
             if (player is null)
             {
+                await RespondAsync("Erro ao retroceder música!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            if (player.State is not PlayerState.Paused)
+            try
             {
-                await RespondAsync("Player is not paused.").ConfigureAwait(false);
+                await player.PreviousTrackAsync().ConfigureAwait(false);
+            }             
+            catch (InvalidOperationException)
+            {
+                await RespondAsync("Não há mais músicas para voltar.", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
-            await player.ResumeAsync().ConfigureAwait(false);
-            await RespondAsync("Resumed.").ConfigureAwait(false);
+            var track = player.CurrentItem.Track;
+            var position = player.QueueIndex;
+
+            var embed = new EmbedBuilder()
+                .WithTitle("🔈 Tocando")
+                .WithDescription(track.Title)
+                .WithUrl(track.Uri.ToString())
+                .WithThumbnailUrl(track.ArtworkUri.ToString())
+                .WithFooter($"Posição: {position + 1}")
+                .Build();
+
+            var controlMessage = player.ControlMessage;
+
+            if (controlMessage is not null)
+            {
+                await controlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync(embed: embed, ephemeral: true).ConfigureAwait(false);
+            }
+
         }
 
         /// <summary>
@@ -240,13 +330,15 @@ namespace CastorDJ.Modules
         /// <returns>
         ///     a task that represents the asynchronous operation. The task result is the lavalink player.
         /// </returns>
-        private async ValueTask<VoteLavalinkPlayer?> GetPlayerAsync(bool connectToVoiceChannel = true)
+        private async ValueTask<AutoPlayer?> GetPlayerAsync(bool connectToVoiceChannel = true)
         {
             var retrieveOptions = new PlayerRetrieveOptions(
                 ChannelBehavior: connectToVoiceChannel ? PlayerChannelBehavior.Join : PlayerChannelBehavior.None);
 
+            var options = new AutoPlayerOptions();
+
             var result = await _audioService.Players
-                .RetrieveAsync(Context, playerFactory: PlayerFactory.Vote, retrieveOptions)
+                .RetrieveAsync<AutoPlayer, AutoPlayerOptions>(Context, CreatePlayerAsync, retrieveOptions)
                 .ConfigureAwait(false);
 
             if (!result.IsSuccess)
@@ -263,6 +355,14 @@ namespace CastorDJ.Modules
             }
 
             return result.Player;
+        }
+
+        public static ValueTask<AutoPlayer> CreatePlayerAsync(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ArgumentNullException.ThrowIfNull(properties);
+
+            return ValueTask.FromResult(new AutoPlayer(properties));
         }
     }
 }
