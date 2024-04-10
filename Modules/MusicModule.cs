@@ -526,14 +526,17 @@ namespace CastorDJ.Modules
 
             if (result.Player.Queue.Count == 0)
             {
-                var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
-
-                messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && x.Embeds.Any()).ToList();
-
-                foreach (var message in messages)
+                _ = Task.Run(async () =>
                 {
-                    await message.DeleteAsync();
-                }
+                    var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
+
+                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && x.Embeds.Any()).ToList();
+
+                    foreach (var message in messages)
+                    {
+                        await message.DeleteAsync();
+                    }
+                });
             }
 
             return result.Player;
