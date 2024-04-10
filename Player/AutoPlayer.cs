@@ -15,6 +15,8 @@ namespace CastorDJ.Player
         private readonly IAudioService _audioService;
         public static readonly YoutubeClient YoutubeClient = new YoutubeClient();
         public IUserMessage ControlMessage { get; set; }
+        public IUserMessage FilaMessage { get; set; }
+        public int FilaSkip { get; set; } = 0;
         public List<LavalinkTrack> Queue { get; set; } = new List<LavalinkTrack>();
         public int QueueIndex { get; set; } = 0;
         private YoutubeClient _youtubeClient;
@@ -42,6 +44,45 @@ namespace CastorDJ.Player
                 await PlayPauseAsync();
             }
             return Queue.Count;
+        }
+
+        public async ValueTask<YoutubeExplode.Playlists.Playlist> PlaylistAsync(string url)
+        {
+            var playlist = await YoutubeClient.Playlists.GetAsync(url);
+            var playlistFirstTrack = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id).CollectAsync(1);
+
+            var firstTrack = await _audioService.Tracks.LoadTrackAsync(playlistFirstTrack.First().Id, TrackSearchMode.YouTube);
+            Queue.Add(firstTrack);
+
+            if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
+            {
+                await StartPlay();
+            }
+            if (QueueIndex > 0 && IsPaused)
+            {
+                await PlayPauseAsync();
+            }
+
+            _ = Task.Run(async () =>
+            {
+                var playlistTracks = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id);
+
+                playlistTracks = playlistTracks.Where(x => x.Id != playlistFirstTrack.First().Id).ToList();
+
+                foreach (var playlistTrack in playlistTracks)
+                {
+                    var track = await _audioService.Tracks.LoadTrackAsync(playlistTrack.Id, TrackSearchMode.YouTube);
+
+                    if (track == null)
+                    {
+                        continue;
+                    }
+
+                    Queue.Add(track);
+                }
+            });
+
+            return playlist;
         }
 
         // play immediately
@@ -133,6 +174,7 @@ namespace CastorDJ.Player
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
 
                 await base.PlayAsync(nextTrack);
+                return;
             }
 
             if (SimilarTracks.Count > 0 && endReason == TrackEndReason.Finished || IsPaused)

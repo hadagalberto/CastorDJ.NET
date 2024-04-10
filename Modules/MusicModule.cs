@@ -41,7 +41,7 @@ namespace CastorDJ.Modules
         ///     Disconnects from the current voice channel connected to asynchronously.
         /// </summary>
         /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("disconecta", "Desconecta o player do canal de voz", runMode: RunMode.Async)]
+        [SlashCommand("desconecta", "Desconecta o player do canal de voz", runMode: RunMode.Async)]
         public async Task Disconnect()
         {
             var player = await GetPlayerAsync().ConfigureAwait(false);
@@ -83,11 +83,7 @@ namespace CastorDJ.Modules
             var count = await player.PlayAsync(track);
             var position = player.QueueIndex;
 
-            var bundle = new ComponentBuilder()
-                .WithButton("⏮️", "previous_track", ButtonStyle.Primary)
-                .WithButton(player.IsPaused ? "▶️" : "⏸️", "play_pause", player.IsPaused ? ButtonStyle.Success : ButtonStyle.Secondary)
-                .WithButton("⏭️", "next_track", ButtonStyle.Primary)
-                .Build();
+            var component = GetControlsComponent(player);
 
             if (player.Queue.Count == 1)
             {
@@ -101,7 +97,7 @@ namespace CastorDJ.Modules
                     .WithFooter($"Posição: {position + 1}")
                     .Build();
 
-                var sendMessage = await FollowupAsync(embed: embed, components: bundle).ConfigureAwait(false);
+                var sendMessage = await FollowupAsync(embed: embed, components: component).ConfigureAwait(false);
 
                 player.ControlMessage = sendMessage;
                 
@@ -112,9 +108,52 @@ namespace CastorDJ.Modules
             }
         }
 
+        [SlashCommand(("playlist"), "Adiciona uma playlist à fila", runMode: RunMode.Async)]
+        public async Task Playlist([Summary("link")] string query)
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
+
+            if (player is null)
+            {
+                return;
+            }
+
+            var playlist = await player.PlaylistAsync(query);
+            var position = player.QueueIndex;
+
+            var track = player.Queue.ElementAt(player.QueueIndex);
+
+            var component = GetControlsComponent(player);
+
+            if (player.Queue.Count == 1)
+            {
+                await DeferAsync().ConfigureAwait(false);
+
+                var sendMessage = await FollowupAsync($"{playlist.Title} sendo adicionada à fila.", ephemeral: true).ConfigureAwait(false);
+
+                var embed = new EmbedBuilder()
+                    .WithTitle("🔈 Tocando")
+                    .WithDescription(track.Title)
+                    .WithUrl(track.Uri.ToString())
+                    .WithThumbnailUrl(track.ArtworkUri.ToString())
+                    .WithFooter($"Posição: {position + 1}")
+                    .Build();
+
+                await sendMessage.ModifyAsync(x => { x.Embed = embed; x.Components = component; }).ConfigureAwait(false);
+
+                player.ControlMessage = sendMessage;
+            }
+            else
+            {
+                await RespondAsync($"{playlist.Title} adicionado à fila.", ephemeral: true).ConfigureAwait(false);
+            }
+        }
+
         [SlashCommand("fila", "Mostra a fila atual", runMode: RunMode.Async)]
         public async Task Queue()
         {
+            await DeferAsync().ConfigureAwait(false);
+
             var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
 
             if (player is null)
@@ -129,7 +168,7 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            var queue = player.Queue;
+            var queue = player.Queue.Skip(player.FilaSkip * 10).Take(10).ToList();
             var position = player.QueueIndex;
 
             var textoFila = new StringBuilder();
@@ -142,15 +181,19 @@ namespace CastorDJ.Modules
 
                 if (i == position)
                 {
-                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Title}**");
+                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{i + 1} 🔈     {item.Title}");
+                    textoFila.AppendLine($"{i + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
-            await RespondAsync(textoFila.ToString(), ephemeral: true).ConfigureAwait(false);
+            var component = GetFilaComponent();
+
+            var filaMessage = await FollowupAsync(textoFila.ToString(), components: component).ConfigureAwait(false);
+            
+            player.FilaMessage = filaMessage;
         }
 
         [SlashCommand("similares", "Obtem a fila de músicas similares", runMode: RunMode.Async)]
@@ -209,15 +252,12 @@ namespace CastorDJ.Modules
 
             var controlMessage = player.ControlMessage;
 
-            var bundle = new ComponentBuilder()
-                .WithButton("⏮️", "previous_track", ButtonStyle.Primary)
-                .WithButton(player.IsPaused ? "▶️" : "⏸️", "play_pause", player.IsPaused ? ButtonStyle.Success : ButtonStyle.Secondary)
-                .WithButton("⏭️", "next_track", ButtonStyle.Primary)
-                .Build();
+            var component = GetControlsComponent(player);
 
             if (controlMessage is not null)
             {
-                await controlMessage.ModifyAsync(x => { x.Components = bundle; }).ConfigureAwait(false);
+                await controlMessage.ModifyAsync(x => { x.Components = component; }).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
             }
             else
             {
@@ -269,6 +309,7 @@ namespace CastorDJ.Modules
             if (controlMessage is not null)
             {
                 await controlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
             }
             else
             {
@@ -313,12 +354,138 @@ namespace CastorDJ.Modules
             if (controlMessage is not null)
             {
                 await controlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
             }
             else
             {
                 await RespondAsync(embed: embed, ephemeral: true).ConfigureAwait(false);
             }
 
+        }
+
+        [ComponentInteraction("previous_fila")]
+        public async Task PreviousFilaAsync()
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: false);
+
+            if (player is null)
+            {
+                await RespondAsync("Erro ao retroceder fila!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            if (player.FilaSkip <= 0)
+            {
+                await RespondAsync("Não há mais músicas para voltar.", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            player.FilaSkip -= 1;
+
+            var queue = player.Queue.Skip(player.FilaSkip * 10).Take(10).ToList();
+            var position = player.QueueIndex;
+
+            var textoFila = new StringBuilder();
+
+            textoFila.AppendLine("Fila atual:");
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                bool current = false;
+
+                if (i == position - player.FilaSkip * 10)
+                {
+                    current = true;
+                }
+
+                var queuePosition = i + player.FilaSkip * 10;
+
+                var item = queue[i];
+
+                if (current)
+                {
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
+                }
+                else
+                {
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
+                }
+            }
+
+            var filaMessage = player.FilaMessage;
+
+            if (filaMessage is not null)
+            {
+                await filaMessage.ModifyAsync(x => x.Content = textoFila.ToString()).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync("Fila", ephemeral: true).ConfigureAwait(false);
+            }
+        }
+
+        [ComponentInteraction("next_fila")]
+        public async Task NextFilaAsync()
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: false);
+
+            if (player is null)
+            {
+                await RespondAsync("Erro ao avançar fila!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            if (player.FilaSkip >= player.Queue.Count / 10)
+            {
+                await RespondAsync("Não há mais músicas para avançar.", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            player.FilaSkip += 1;
+
+            var queue = player.Queue.Skip(player.FilaSkip * 10).Take(10).ToList();
+            var position = player.QueueIndex;
+
+            var textoFila = new StringBuilder();
+
+            textoFila.AppendLine("Fila atual:");
+
+            for (int i = 0; i < queue.Count; i++)
+            {
+                bool current = false;
+
+                // check if the current item is in the current page
+                if (i == position - player.FilaSkip * 10)
+                {
+                    current = true;
+                }
+
+                var queuePosition = i + player.FilaSkip * 10;
+
+                var item = queue[i];
+
+                if (current)
+                {
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
+                }
+                else
+                {
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
+                }
+            }
+
+            var filaMessage = player.FilaMessage;
+
+            if (filaMessage is not null)
+            {
+                await filaMessage.ModifyAsync(x => x.Content = textoFila.ToString()).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync("Fila", ephemeral: true).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
@@ -363,6 +530,27 @@ namespace CastorDJ.Modules
             ArgumentNullException.ThrowIfNull(properties);
 
             return ValueTask.FromResult(new AutoPlayer(properties));
+        }
+
+        private MessageComponent GetControlsComponent(AutoPlayer player)
+        {
+            var component = new ComponentBuilder()
+                .WithButton("⏮️", "previous_track", ButtonStyle.Primary)
+                .WithButton(player.IsPaused ? "▶️" : "⏸️", "play_pause", player.IsPaused ? ButtonStyle.Success : ButtonStyle.Primary)
+                .WithButton("⏭️", "next_track", ButtonStyle.Primary)
+                .Build();
+
+            return component;
+        }
+
+        private MessageComponent GetFilaComponent()
+        {
+            var component = new ComponentBuilder()
+                .WithButton("⏮️", "previous_fila", ButtonStyle.Primary)
+                .WithButton("⏭️", "next_fila", ButtonStyle.Primary)
+                .Build();
+
+            return component;
         }
     }
 }
