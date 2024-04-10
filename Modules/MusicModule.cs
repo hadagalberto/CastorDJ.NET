@@ -115,22 +115,26 @@ namespace CastorDJ.Modules
 
             if (player is null)
             {
+                await DeferAsync().ConfigureAwait(false);
                 return;
             }
 
             var playlist = await player.PlaylistAsync(query);
+
+            var component = GetControlsComponent(player);
+
+            await DeferAsync().ConfigureAwait(false);
+
+            var sendMessage = await FollowupAsync($"{playlist.Title} sendo adicionada à fila.", ephemeral: true).ConfigureAwait(false);
+
+            do { } while (player.Queue.Count == 0);
+
             var position = player.QueueIndex;
 
             var track = player.Queue.ElementAt(player.QueueIndex);
 
-            var component = GetControlsComponent(player);
-
             if (player.Queue.Count == 1)
             {
-                await DeferAsync().ConfigureAwait(false);
-
-                var sendMessage = await FollowupAsync($"{playlist.Title} sendo adicionada à fila.", ephemeral: true).ConfigureAwait(false);
-
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
                     .WithDescription(track.Title)
@@ -517,8 +521,19 @@ namespace CastorDJ.Modules
                     _ => "Unknown error.",
                 };
 
-                await FollowupAsync(errorMessage).ConfigureAwait(false);
                 return null;
+            }
+
+            if (result.Player.Queue.Count == 0)
+            {
+                var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
+
+                messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && x.Embeds.Any()).ToList();
+
+                foreach (var message in messages)
+                {
+                    await message.DeleteAsync();
+                }
             }
 
             return result.Player;

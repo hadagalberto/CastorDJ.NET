@@ -4,9 +4,13 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Lavalink4NET.Extensions;
+using Lavalink4NET.InactivityTracking;
+using Lavalink4NET.InactivityTracking.Extensions;
+using Lavalink4NET.InactivityTracking.Trackers.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace CastorDJ
 {
@@ -41,6 +45,12 @@ namespace CastorDJ
                         config.BaseAddress = new Uri("http://lavalink:2333/");
                         config.Passphrase = "senhasegura";
                         config.ReadyTimeout = TimeSpan.FromSeconds(15);
+                    });
+
+                    services.ConfigureInactivityTracking(options =>
+                    {
+                        options.UseDefaultTrackers = true;
+                        options.TimeoutBehavior = InactivityTrackingTimeoutBehavior.Lowest;
                     });
 
                 })

@@ -7,10 +7,12 @@ using Lavalink4NET.Tracks;
 using Microsoft.Extensions.DependencyInjection;
 using YoutubeExplode;
 using YoutubeExplode.Common;
+using Lavalink4NET.InactivityTracking.Players;
+using Lavalink4NET.InactivityTracking.Trackers;
 
 namespace CastorDJ.Player
 {
-    public sealed class AutoPlayer : LavalinkPlayer
+    public sealed class AutoPlayer : LavalinkPlayer, IInactivityPlayerListener
     {
         private readonly IAudioService _audioService;
         public static readonly YoutubeClient YoutubeClient = new YoutubeClient();
@@ -49,22 +51,23 @@ namespace CastorDJ.Player
         public async ValueTask<YoutubeExplode.Playlists.Playlist> PlaylistAsync(string url)
         {
             var playlist = await YoutubeClient.Playlists.GetAsync(url);
-            var playlistFirstTrack = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id).CollectAsync(1);
-
-            var firstTrack = await _audioService.Tracks.LoadTrackAsync(playlistFirstTrack.First().Id, TrackSearchMode.YouTube);
-            Queue.Add(firstTrack);
-
-            if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
-            {
-                await StartPlay();
-            }
-            if (QueueIndex > 0 && IsPaused)
-            {
-                await PlayPauseAsync();
-            }
 
             _ = Task.Run(async () =>
             {
+                var playlistFirstTrack = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id).CollectAsync(1);
+
+                var firstTrack = await _audioService.Tracks.LoadTrackAsync(playlistFirstTrack.First().Id, TrackSearchMode.YouTube);
+                Queue.Add(firstTrack);
+
+                if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
+                {
+                    await StartPlay();
+                }
+                if (QueueIndex > 0 && IsPaused)
+                {
+                    await PlayPauseAsync();
+                }
+
                 var playlistTracks = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id);
 
                 playlistTracks = playlistTracks.Where(x => x.Id != playlistFirstTrack.First().Id).ToList();
@@ -232,5 +235,22 @@ namespace CastorDJ.Player
             SimilarTracks = similarTracks;
         }
 
+        public async ValueTask NotifyPlayerInactiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await DisconnectAsync();
+        }
+
+        public ValueTask NotifyPlayerActiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return default; // do nothing
+        }
+
+        public ValueTask NotifyPlayerTrackedAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return default; // do nothing
+        }
     }
 }

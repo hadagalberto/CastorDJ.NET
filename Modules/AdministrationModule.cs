@@ -13,18 +13,22 @@ namespace CastorDJ.Modules
 
         public AdministrationModule() { }
 
-        [RequireRole("Admin")]
         [SlashCommand("limpar", "Limpa as mensagens do canal de texto!")]
-        public async Task LimparAsync(uint amount = 100)
+        public async Task LimparAsync()
         {
-            var messages = await Context.Channel.GetMessagesAsync((int)amount + 1).FlattenAsync();
+            var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
+
+            messages = messages.Where(x => x.Author.Id == Context.User.Id).ToList();
+
+            var m = await ReplyAsync($"Deletando {messages.Count()} mensagens. _Essa mensagem vai desaparecer em 5 segundos._");
 
             foreach (var message in messages)
             {
                 await message.DeleteAsync();
             }
+
             const int delay = 5000;
-            var m = await ReplyAsync($"Purge completed. _This message will be deleted in {delay / 1000} seconds._");
+            
             await Task.Delay(delay);
             await m.DeleteAsync();
         }
