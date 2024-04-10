@@ -170,7 +170,7 @@ namespace CastorDJ.Player
                     .WithTitle("🔈 Tocando")
                     .WithDescription(nextTrack.Title)
                     .WithUrl(nextTrack.Uri.ToString())
-                    .WithThumbnailUrl(nextTrack.ArtworkUri.ToString())
+                    .WithImageUrl(nextTrack.ArtworkUri.ToString())
                     .WithFooter($"Posição: {QueueIndex + 1}")
                     .Build();
 
@@ -192,7 +192,23 @@ namespace CastorDJ.Player
                     .WithTitle("🔈 Tocando")
                     .WithDescription(nextTrack.Title)
                     .WithUrl(nextTrack.Uri.ToString())
-                    .WithThumbnailUrl(nextTrack.ArtworkUri.ToString())
+                    .WithImageUrl(nextTrack.ArtworkUri.ToString())
+                    .WithFooter($"Posição: {QueueIndex + 1}")
+                    .Build();
+
+                await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
+                return;
+            }
+
+            if (CurrentTrack != null)
+            {
+                var currentTrack = CurrentTrack;
+
+                var embeds = new EmbedBuilder()
+                    .WithTitle("🔈 Tocando")
+                    .WithDescription(currentTrack.Title)
+                    .WithUrl(currentTrack.Uri.ToString())
+                    .WithImageUrl(currentTrack.ArtworkUri.ToString())
                     .WithFooter($"Posição: {QueueIndex + 1}")
                     .Build();
 

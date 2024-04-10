@@ -93,7 +93,7 @@ namespace CastorDJ.Modules
                     .WithTitle("🔈 Tocando")
                     .WithDescription(track.Title)
                     .WithUrl(track.Uri.ToString())
-                    .WithThumbnailUrl(track.ArtworkUri.ToString())
+                    .WithImageUrl(track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {position + 1}")
                     .Build();
 
@@ -139,7 +139,7 @@ namespace CastorDJ.Modules
                     .WithTitle("🔈 Tocando")
                     .WithDescription(track.Title)
                     .WithUrl(track.Uri.ToString())
-                    .WithThumbnailUrl(track.ArtworkUri.ToString())
+                    .WithImageUrl(track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {position + 1}")
                     .Build();
 
@@ -304,7 +304,7 @@ namespace CastorDJ.Modules
                 .WithTitle("🔈 Tocando")
                 .WithDescription(track.Title)
                 .WithUrl(track.Uri.ToString())
-                .WithThumbnailUrl(track.ArtworkUri.ToString())
+                .WithImageUrl(track.ArtworkUri.ToString())
                 .WithFooter($"Posição: {position + 1}")
                 .Build();
 
@@ -349,7 +349,7 @@ namespace CastorDJ.Modules
                 .WithTitle("🔈 Tocando")
                 .WithDescription(track.Title)
                 .WithUrl(track.Uri.ToString())
-                .WithThumbnailUrl(track.ArtworkUri.ToString())
+                .WithImageUrl(track.ArtworkUri.ToString())
                 .WithFooter($"Posição: {position + 1}")
                 .Build();
 
