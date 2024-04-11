@@ -153,6 +153,22 @@ namespace CastorDJ.Modules
             }
         }
 
+        [SlashCommand("aleatorizar", "Aleatoriza a fila", runMode: RunMode.Async)]
+        public async Task Shuffle()
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
+
+            if (player is null)
+            {
+                await RespondAsync("Erro ao aleatorizar fila!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            await player.Shuffle();
+
+            await RespondAsync("Fila aleatorizada!", ephemeral: true).ConfigureAwait(false);
+        }
+
         [SlashCommand("fila", "Mostra a fila atual", runMode: RunMode.Async)]
         public async Task Queue()
         {
@@ -530,7 +546,7 @@ namespace CastorDJ.Modules
                 {
                     var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
 
-                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && x.Embeds.Any()).ToList();
+                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && (x.Embeds.Any() || x.Components.Any())).ToList();
 
                     foreach (var message in messages)
                     {

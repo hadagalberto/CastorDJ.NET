@@ -155,6 +155,33 @@ namespace CastorDJ.Player
             }
         }
 
+        public async ValueTask StopAsync()
+        {
+            await base.StopAsync();
+            Queue.Clear();
+            QueueIndex = 0;
+        }
+
+        public ValueTask Shuffle()
+        {
+            _ = Task.Run(() =>
+            {
+                var currentTrack = Queue[QueueIndex];
+                Queue.RemoveAt(QueueIndex);
+
+                var random = new Random();
+                var shuffledQueue = Queue.OrderBy(x => random.Next()).ToList();
+
+                Queue.Clear();
+                Queue.Add(currentTrack);
+                Queue.AddRange(shuffledQueue);
+
+                QueueIndex = 0;
+            });
+
+            return default;
+        }
+
         protected override async ValueTask NotifyTrackEndedAsync(ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
         {
             if (endReason == TrackEndReason.LoadFailed || endReason == TrackEndReason.Cleanup)
@@ -197,6 +224,9 @@ namespace CastorDJ.Player
                     .Build();
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
+
+                await DisconnectAsync(cancellationToken);
+
                 return;
             }
 
