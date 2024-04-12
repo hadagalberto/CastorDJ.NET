@@ -9,6 +9,7 @@ using YoutubeExplode;
 using YoutubeExplode.Common;
 using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
+using System.Text;
 
 namespace CastorDJ.Player
 {
@@ -19,7 +20,7 @@ namespace CastorDJ.Player
         public IUserMessage ControlMessage { get; set; }
         public IUserMessage FilaMessage { get; set; }
         public int FilaSkip { get; set; } = 0;
-        public List<LavalinkTrack> Queue { get; set; } = new List<LavalinkTrack>();
+        public List<QueueItem> Queue { get; set; } = new List<QueueItem>();
         public int QueueIndex { get; set; } = 0;
         private YoutubeClient _youtubeClient;
         public List<LavalinkTrack> SimilarTracks = new List<LavalinkTrack>();
@@ -31,11 +32,11 @@ namespace CastorDJ.Player
             _youtubeClient = new YoutubeClient();
         }
 
-        public async ValueTask<int> PlayAsync(LavalinkTrack track)
+        public async ValueTask<int> PlayAsync(QueueItem track)
         {
             Queue.Add(track);
 
-            _ = Task.Run(() => FindSimilarTracks(track));
+            _ = Task.Run(() => FindSimilarTracks(track.Track));
 
             if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
             {
@@ -48,7 +49,7 @@ namespace CastorDJ.Player
             return Queue.Count;
         }
 
-        public async ValueTask<YoutubeExplode.Playlists.Playlist> PlaylistAsync(string url)
+        public async ValueTask<YoutubeExplode.Playlists.Playlist> PlaylistAsync(string url, ulong requester)
         {
             var playlist = await YoutubeClient.Playlists.GetAsync(url);
 
@@ -57,7 +58,12 @@ namespace CastorDJ.Player
                 var playlistFirstTrack = await YoutubeClient.Playlists.GetVideosAsync(playlist.Id).CollectAsync(1);
 
                 var firstTrack = await _audioService.Tracks.LoadTrackAsync(playlistFirstTrack.First().Id, TrackSearchMode.YouTube);
-                Queue.Add(firstTrack);
+                Queue.Add(new QueueItem
+                {
+                    Track = firstTrack,
+                    Requester = requester,
+                    RequestedAt = DateTime.Now,
+                });
 
                 if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
                 {
@@ -81,7 +87,12 @@ namespace CastorDJ.Player
                         continue;
                     }
 
-                    Queue.Add(track);
+                    Queue.Add(new QueueItem
+                    {
+                        Track = track,
+                        Requester = requester,
+                        RequestedAt = DateTime.Now,
+                    });
                 }
             });
 
@@ -91,7 +102,10 @@ namespace CastorDJ.Player
         // play immediately
         private async ValueTask PlayNowAsync(LavalinkTrack track)
         {
-            Queue.Add(track);
+            Queue.Add(new QueueItem
+            {
+                Track = track,
+            });
             await NextTrackAsync();
             if (SimilarTracks.Count <= 3)
             {
@@ -115,7 +129,7 @@ namespace CastorDJ.Player
             }
             QueueIndex++;
             var track = Queue[QueueIndex];
-            await base.PlayAsync(track);
+            await base.PlayAsync(track.Track);
         }
 
         public async ValueTask PreviousTrackAsync()
@@ -126,7 +140,7 @@ namespace CastorDJ.Player
             }
             QueueIndex--;
             var track = Queue[QueueIndex];
-            await base.PlayAsync(track);
+            await base.PlayAsync(track.Track);
         }
 
         public async ValueTask StartPlay()
@@ -136,7 +150,7 @@ namespace CastorDJ.Player
                 throw new InvalidOperationException("Não há mais músicas na fila.");
             }
             var track = Queue[QueueIndex];
-            await base.PlayAsync(track);
+            await base.PlayAsync(track.Track);
         }
 
         public async ValueTask PlayPauseAsync()
@@ -184,6 +198,35 @@ namespace CastorDJ.Player
 
         protected override async ValueTask NotifyTrackEndedAsync(ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
         {
+            if (FilaMessage != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    var queue = Queue.Skip(FilaSkip * 10).Take(10).ToList();
+                    var position = QueueIndex;
+
+                    var textoFila = new StringBuilder();
+
+                    textoFila.AppendLine("Fila atual:");
+
+                    for (int i = 0; i < queue.Count; i++)
+                    {
+                        var item = queue[i];
+
+                        if (i == position)
+                        {
+                            textoFila.AppendLine($"{i + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                        }
+                        else
+                        {
+                            textoFila.AppendLine($"{i + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                        }
+                    }
+
+                    await FilaMessage.ModifyAsync(x => x.Content = textoFila.ToString()).ConfigureAwait(false);
+                });
+            }
+
             if (endReason == TrackEndReason.LoadFailed || endReason == TrackEndReason.Cleanup)
             {
                 await NextTrackAsync();
@@ -191,19 +234,23 @@ namespace CastorDJ.Player
             if (QueueIndex < Queue.Count - 1 && endReason != TrackEndReason.Replaced)
             {
                 QueueIndex++;
-                var nextTrack = Queue[QueueIndex];
+                var currentTrack = Queue[QueueIndex];
+
+                var description = new StringBuilder();
+                description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
+                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(currentTrack.Requester)}");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
-                    .WithDescription(nextTrack.Title)
-                    .WithUrl(nextTrack.Uri.ToString())
-                    .WithImageUrl(nextTrack.ArtworkUri.ToString())
+                    .WithDescription(description.ToString())
+                    .WithUrl(currentTrack.Track.Uri.ToString())
+                    .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {QueueIndex + 1}")
                     .Build();
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
 
-                await base.PlayAsync(nextTrack);
+                await base.PlayAsync(currentTrack.Track);
                 return;
             }
 
@@ -213,13 +260,17 @@ namespace CastorDJ.Player
                 await PlayNowAsync(similarTrack);
                 SimilarTracks.Remove(similarTrack);
 
-                var nextTrack = Queue[QueueIndex];
+                var currentTrack = Queue[QueueIndex];
+
+                var description = new StringBuilder();
+                description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
+                description.AppendLine($"Adicionado por: {ControlMessage.Author.Mention}");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
-                    .WithDescription(nextTrack.Title)
-                    .WithUrl(nextTrack.Uri.ToString())
-                    .WithImageUrl(nextTrack.ArtworkUri.ToString())
+                    .WithDescription(description.ToString())
+                    .WithUrl(currentTrack.Track.Uri.ToString())
+                    .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {QueueIndex + 1}")
                     .Build();
 
@@ -232,13 +283,17 @@ namespace CastorDJ.Player
 
             if (CurrentTrack != null)
             {
-                var currentTrack = CurrentTrack;
+                var currentTrack = Queue.ElementAt(QueueIndex);
+
+                var description = new StringBuilder();
+                description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
+                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(currentTrack.Requester)}");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
-                    .WithDescription(currentTrack.Title)
-                    .WithUrl(currentTrack.Uri.ToString())
-                    .WithImageUrl(currentTrack.ArtworkUri.ToString())
+                    .WithDescription(description.ToString())
+                    .WithUrl(currentTrack.Track.Uri.ToString())
+                    .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {QueueIndex + 1}")
                     .Build();
 

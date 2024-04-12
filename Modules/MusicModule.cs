@@ -14,6 +14,7 @@ using Discord;
 using CastorDJ.Player;
 using CastorDJ.Factories;
 using System.Text;
+using Lavalink4NET.Tracks;
 
 namespace CastorDJ.Modules
 {
@@ -70,15 +71,22 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            var track = await _audioService.Tracks
+            var simpleTrack = await _audioService.Tracks
                 .LoadTrackAsync(query, TrackSearchMode.YouTube)
                 .ConfigureAwait(false);
 
-            if (track is null)
+            if (simpleTrack is null)
             {
                 await FollowupAsync("😖 No results.").ConfigureAwait(false);
                 return;
             }
+
+            QueueItem track = new QueueItem
+            {
+                Track = simpleTrack,
+                Requester = Context.User.Id,
+                RequestedAt = DateTime.Now
+            };
 
             var count = await player.PlayAsync(track);
             var position = player.QueueIndex;
@@ -89,11 +97,16 @@ namespace CastorDJ.Modules
             {
                 await DeferAsync().ConfigureAwait(false);
 
+                var description = new StringBuilder();
+                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+                
+                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
-                    .WithDescription(track.Title)
-                    .WithUrl(track.Uri.ToString())
-                    .WithImageUrl(track.ArtworkUri.ToString())
+                    .WithDescription(description.ToString())
+                    .WithUrl(track.Track.Uri.ToString())
+                    .WithImageUrl(track.Track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {position + 1}")
                     .Build();
 
@@ -104,7 +117,7 @@ namespace CastorDJ.Modules
             }
             else
             {
-                await RespondAsync($"{track.Title} adicionado à fila.", ephemeral: true).ConfigureAwait(false);
+                await RespondAsync($"{track.Track.Title} adicionado à fila.", ephemeral: true).ConfigureAwait(false);
             }
         }
 
@@ -119,7 +132,7 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            var playlist = await player.PlaylistAsync(query);
+            var playlist = await player.PlaylistAsync(query, Context.User.Id);
 
             var component = GetControlsComponent(player);
 
@@ -133,17 +146,22 @@ namespace CastorDJ.Modules
 
             var track = player.Queue.ElementAt(player.QueueIndex);
 
-            if (player.Queue.Count == 1)
+            if (player.Queue.Count == 1 && player.ControlMessage == null)
             {
+                var description = new StringBuilder();
+                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+                
+                description.AppendLine($"Adicionado por: {Context.User.Mention}");
+
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
-                    .WithDescription(track.Title)
-                    .WithUrl(track.Uri.ToString())
-                    .WithImageUrl(track.ArtworkUri.ToString())
+                    .WithDescription(description.ToString())
+                    .WithUrl(track.Track.Uri.ToString())
+                    .WithImageUrl(track.Track.ArtworkUri.ToString())
                     .WithFooter($"Posição: {position + 1}")
                     .Build();
 
-                await sendMessage.ModifyAsync(x => { x.Embed = embed; x.Components = component; }).ConfigureAwait(false);
+                await sendMessage.ModifyAsync(x => { x.Embed = embed; x.Components = component; x.Content = ""; }).ConfigureAwait(false);
 
                 player.ControlMessage = sendMessage;
             }
@@ -201,11 +219,11 @@ namespace CastorDJ.Modules
 
                 if (i == position)
                 {
-                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{i + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{i + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
@@ -316,11 +334,16 @@ namespace CastorDJ.Modules
 
             var position = player.QueueIndex;
 
+            var description = new StringBuilder();
+            description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+            
+            description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+
             var embed = new EmbedBuilder()
                 .WithTitle("🔈 Tocando")
-                .WithDescription(track.Title)
-                .WithUrl(track.Uri.ToString())
-                .WithImageUrl(track.ArtworkUri.ToString())
+                .WithDescription(description.ToString())
+                .WithUrl(track.Track.Uri.ToString())
+                .WithImageUrl(track.Track.ArtworkUri.ToString())
                 .WithFooter($"Posição: {position + 1}")
                 .Build();
 
@@ -358,14 +381,19 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            var track = player.CurrentItem.Track;
+            var track = player.Queue.ElementAt(player.QueueIndex);
             var position = player.QueueIndex;
+
+            var description = new StringBuilder();
+            description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+            
+            description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
             var embed = new EmbedBuilder()
                 .WithTitle("🔈 Tocando")
-                .WithDescription(track.Title)
-                .WithUrl(track.Uri.ToString())
-                .WithImageUrl(track.ArtworkUri.ToString())
+                .WithDescription(description.ToString())
+                .WithUrl(track.Track.Uri.ToString())
+                .WithImageUrl(track.Track.ArtworkUri.ToString())
                 .WithFooter($"Posição: {position + 1}")
                 .Build();
 
@@ -424,11 +452,11 @@ namespace CastorDJ.Modules
 
                 if (current)
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
@@ -487,11 +515,11 @@ namespace CastorDJ.Modules
 
                 if (current)
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Title} - {item.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
