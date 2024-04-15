@@ -276,8 +276,6 @@ namespace CastorDJ.Player
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
 
-                await DisconnectAsync(cancellationToken);
-
                 return;
             }
 
@@ -308,6 +306,7 @@ namespace CastorDJ.Player
 
             await ControlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
 
+            await DisconnectAsync(cancellationToken);
         }
 
         private async ValueTask FindSimilarTracks(LavalinkTrack track)
