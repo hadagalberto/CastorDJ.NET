@@ -49,6 +49,18 @@ namespace CastorDJ.Player
             return Queue.Count;
         }
 
+        public async ValueTask<int> AddNextAsync(QueueItem track)
+        {
+            if (!Queue.Any())
+            {
+                return await PlayAsync(track);
+            }
+
+            Queue.Insert(QueueIndex + 1, track);
+
+            return Queue.Count;
+        }
+
         public async ValueTask<YoutubeExplode.Playlists.Playlist> PlaylistAsync(string url, ulong requester)
         {
             var playlist = await YoutubeClient.Playlists.GetAsync(url);
@@ -211,15 +223,24 @@ namespace CastorDJ.Player
 
                     for (int i = 0; i < queue.Count; i++)
                     {
+                        bool current = false;
+
+                        if (i == position - FilaSkip * 10)
+                        {
+                            current = true;
+                        }
+
+                        var queuePosition = i + FilaSkip * 10;
+
                         var item = queue[i];
 
-                        if (i == position)
+                        if (current)
                         {
-                            textoFila.AppendLine($"{i + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                            textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                         }
                         else
                         {
-                            textoFila.AppendLine($"{i + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                            textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                         }
                     }
 

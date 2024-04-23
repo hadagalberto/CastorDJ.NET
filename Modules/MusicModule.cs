@@ -121,7 +121,68 @@ namespace CastorDJ.Modules
             }
         }
 
-        [SlashCommand(("playlist"), "Adiciona uma playlist à fila", runMode: RunMode.Async)]
+        [SlashCommand("proxima", "Adiciona uma música para ser a próxima a ser tocada", runMode: RunMode.Async)]
+        public async Task Next([Summary("música"), Autocomplete(typeof(MusicAutoCompleteHandler))] string query)
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
+
+            if (player is null)
+            {
+                return;
+            }
+
+            var simpleTrack = await _audioService.Tracks
+                .LoadTrackAsync(query, TrackSearchMode.YouTube)
+                .ConfigureAwait(false);
+
+            if (simpleTrack is null)
+            {
+                await FollowupAsync("😖 No results.").ConfigureAwait(false);
+                return;
+            }
+
+            QueueItem track = new QueueItem
+            {
+                Track = simpleTrack,
+                Requester = Context.User.Id,
+                RequestedAt = DateTime.Now
+            };
+
+            var count = await player.AddNextAsync(track);
+            var position = player.QueueIndex;
+
+            var component = GetControlsComponent(player);
+
+            if (player.Queue.Count == 1)
+            {
+                await DeferAsync().ConfigureAwait(false);
+
+                var description = new StringBuilder();
+                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+                
+                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+
+                var embed = new EmbedBuilder()
+                    .WithTitle("🔈 Tocando")
+                    .WithDescription(description.ToString())
+                    .WithUrl(track.Track.Uri.ToString())
+                    .WithImageUrl(track.Track.ArtworkUri.ToString())
+                    .WithFooter($"Posição: {position + 1}")
+                    .Build();
+
+                var sendMessage = await FollowupAsync(embed: embed, components: component).ConfigureAwait(false);
+
+                player.ControlMessage = sendMessage;
+                
+            }
+            else
+            {
+                await RespondAsync($"{track.Track.Title} adicionado à fila.", ephemeral: true).ConfigureAwait(false);
+            }
+        }
+
+
+        [SlashCommand("playlist", "Adiciona uma playlist à fila", runMode: RunMode.Async)]
         public async Task Playlist([Summary("link")] string query)
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
