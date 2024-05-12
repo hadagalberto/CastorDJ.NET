@@ -1,4 +1,5 @@
-﻿using Lavalink4NET.Players.Queued;
+﻿using Discord.WebSocket;
+using Lavalink4NET.Players.Queued;
 
 namespace CastorDJ.Player
 {

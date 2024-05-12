@@ -1,7 +1,9 @@
-﻿using CastorDJ.Utils;
+﻿using CastorDJ.Player;
+using CastorDJ.Utils;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Lavalink4NET;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
@@ -15,17 +17,20 @@ namespace CastorDJ.Services
         private readonly InteractionService _interactions;
         private readonly IServiceProvider _services;
         private readonly ILogger<InteractionService> _logger;
+        private readonly IAudioService _audioService;
 
         public InteractionHandlingService(
             DiscordSocketClient discord,
             InteractionService interactions,
             IServiceProvider services,
-            ILogger<InteractionService> logger)
+            ILogger<InteractionService> logger,
+            IAudioService audioService)
         {
             _discord = discord;
             _interactions = interactions;
             _services = services;
             _logger = logger;
+            _audioService = audioService;
 
             _interactions.Log += msg => LogHelper.OnLogAsync(_logger, msg);
         }
@@ -51,6 +56,16 @@ namespace CastorDJ.Services
             {
                 var context = new SocketInteractionContext(_discord, interaction);
                 var result = await _interactions.ExecuteCommandAsync(context, _services);
+
+                _ = Task.Run(() => {
+                    var playerCount = _audioService.Players.GetPlayers<AutoPlayer>().Count();
+
+                    // atualizar o status do bot para mostrar quantos players estão ativos
+                    _discord.SetActivityAsync(playerCount > 0
+                        ? new Game($"em {playerCount} players", ActivityType.Watching)
+                        : new Game("em nenhum player", ActivityType.Watching));
+                    
+                });
 
                 if (!result.IsSuccess)
                     await context.Channel.SendMessageAsync(result.ToString());

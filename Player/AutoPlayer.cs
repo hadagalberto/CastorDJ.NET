@@ -10,6 +10,7 @@ using YoutubeExplode.Common;
 using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
 using System.Text;
+using Discord.WebSocket;
 
 namespace CastorDJ.Player
 {
@@ -25,11 +26,14 @@ namespace CastorDJ.Player
         private YoutubeClient _youtubeClient;
         public List<LavalinkTrack> SimilarTracks = new List<LavalinkTrack>();
 
-        public AutoPlayer(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties)
+        private readonly SocketSelfUser BotUser;
+
+        public AutoPlayer(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, SocketSelfUser botUser)
             : base(properties)
         {
             _audioService = properties.ServiceProvider.GetRequiredService<IAudioService>();
             _youtubeClient = new YoutubeClient();
+            BotUser = botUser;
         }
 
         public async ValueTask<int> PlayAsync(QueueItem track)
@@ -217,6 +221,13 @@ namespace CastorDJ.Player
                     var queue = Queue.Skip(FilaSkip * 10).Take(10).ToList();
                     var position = QueueIndex;
 
+                    var currenyFilaIndex = QueueIndex - FilaSkip * 10;
+
+                    if (currenyFilaIndex >= 10)
+                    {
+                        FilaSkip++;
+                    }
+
                     var textoFila = new StringBuilder();
 
                     textoFila.AppendLine("Fila atual:");
@@ -261,6 +272,8 @@ namespace CastorDJ.Player
                 description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
                 description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(currentTrack.Requester)}");
 
+                description.AppendLine($"[Link]({currentTrack.Track.Uri})");
+
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
                     .WithDescription(description.ToString())
@@ -286,6 +299,8 @@ namespace CastorDJ.Player
                 var description = new StringBuilder();
                 description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
                 description.AppendLine($"Adicionado por: {ControlMessage.Author.Mention}");
+
+                description.AppendLine($"[Link]({currentTrack.Track.Uri})");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")

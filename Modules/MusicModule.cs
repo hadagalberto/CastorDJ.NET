@@ -1,20 +1,13 @@
-﻿using Discord.Interactions;
+﻿using CastorDJ.AutoCompleteHandlers;
+using CastorDJ.Player;
+using Discord;
+using Discord.Interactions;
 using Lavalink4NET;
-using Lavalink4NET.Players.Vote;
+using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Players;
 using Lavalink4NET.Rest.Entities.Tracks;
-using Microsoft.Extensions.Options;
-using Lavalink4NET.DiscordNet;
-using Lavalink4NET.Extensions;
-using System;
-using System.Threading.Tasks;
-using Lavalink4NET.Players.Queued;
-using CastorDJ.AutoCompleteHandlers;
-using Discord;
-using CastorDJ.Player;
-using CastorDJ.Factories;
-using System.Text;
 using Lavalink4NET.Tracks;
+using System.Text;
 
 namespace CastorDJ.Modules
 {
@@ -102,6 +95,8 @@ namespace CastorDJ.Modules
                 
                 description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
+                description.AppendLine($"[Link]({track.Track.Uri})");
+
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
                     .WithDescription(description.ToString())
@@ -162,6 +157,8 @@ namespace CastorDJ.Modules
                 
                 description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
+                description.AppendLine($"[Link]({track.Track.Uri})");
+
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
                     .WithDescription(description.ToString())
@@ -213,6 +210,8 @@ namespace CastorDJ.Modules
                 description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
                 
                 description.AppendLine($"Adicionado por: {Context.User.Mention}");
+
+                description.AppendLine($"[Link]({track.Track.Uri})");
 
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -399,6 +398,8 @@ namespace CastorDJ.Modules
             description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
             
             description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+
+            description.AppendLine($"[Link]({track.Track.Uri})");
 
             var embed = new EmbedBuilder()
                 .WithTitle("🔈 Tocando")
@@ -647,12 +648,12 @@ namespace CastorDJ.Modules
             return result.Player;
         }
 
-        public static ValueTask<AutoPlayer> CreatePlayerAsync(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, CancellationToken cancellationToken = default)
+        public ValueTask<AutoPlayer> CreatePlayerAsync(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(properties);
 
-            return ValueTask.FromResult(new AutoPlayer(properties));
+            return ValueTask.FromResult(new AutoPlayer(properties, Context.Client.CurrentUser));
         }
 
         private MessageComponent GetControlsComponent(AutoPlayer player)
