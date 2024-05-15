@@ -47,10 +47,9 @@ namespace CastorDJ
                         config.ReadyTimeout = TimeSpan.FromSeconds(15);
                     });
 
-                    services.ConfigureInactivityTracking(options =>
+                    services.Configure<UsersInactivityTrackerOptions>(config =>
                     {
-                        options.UseDefaultTrackers = true;
-                        options.TimeoutBehavior = InactivityTrackingTimeoutBehavior.Lowest;
+                        config.Timeout = TimeSpan.FromSeconds(5);
                     });
 
                 })
