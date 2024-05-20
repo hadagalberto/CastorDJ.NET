@@ -628,7 +628,7 @@ namespace CastorDJ.Modules
                 {
                     var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
 
-                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id && (x.Embeds.Any() || x.Components.Any())).ToList();
+                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id).ToList();
 
                     foreach (var message in messages)
                     {

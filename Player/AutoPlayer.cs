@@ -380,20 +380,10 @@ namespace CastorDJ.Player
 
         public async ValueTask NotifyPlayerActiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
-            if (ControlMessage != null)
-            {
-                var channel = ControlMessage.Channel as ITextChannel;
-                await channel.SendMessageAsync("Player está ativo novamente.");
-            }
         }
 
         public async ValueTask NotifyPlayerTrackedAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
-            if (ControlMessage != null)
-            {
-                var channel = ControlMessage.Channel as ITextChannel;
-                await channel.SendMessageAsync("Player está sendo rastreado como inativo.");
-            }
         }
     }
 }
