@@ -91,11 +91,9 @@ namespace CastorDJ.Modules
                 await DeferAsync().ConfigureAwait(false);
 
                 var description = new StringBuilder();
-                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
+                description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
                 
                 description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
-
-                description.AppendLine($"[Link]({track.Track.Uri})");
 
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -153,11 +151,9 @@ namespace CastorDJ.Modules
                 await DeferAsync().ConfigureAwait(false);
 
                 var description = new StringBuilder();
-                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
-                
-                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+                description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
 
-                description.AppendLine($"[Link]({track.Track.Uri})");
+                description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -207,11 +203,9 @@ namespace CastorDJ.Modules
             if (player.Queue.Count == 1 && player.ControlMessage == null)
             {
                 var description = new StringBuilder();
-                description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
-                
-                description.AppendLine($"Adicionado por: {Context.User.Mention}");
+                description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
 
-                description.AppendLine($"[Link]({track.Track.Uri})");
+                description.AppendLine($"Adicionado por: {Context.User.Mention}");
 
                 var embed = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -395,11 +389,9 @@ namespace CastorDJ.Modules
             var position = player.QueueIndex;
 
             var description = new StringBuilder();
-            description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
-            
-            description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+            description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
 
-            description.AppendLine($"[Link]({track.Track.Uri})");
+            description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
             var embed = new EmbedBuilder()
                 .WithTitle("🔈 Tocando")
@@ -447,8 +439,8 @@ namespace CastorDJ.Modules
             var position = player.QueueIndex;
 
             var description = new StringBuilder();
-            description.AppendLine($"{track.Track.Title} - {track.Track.Duration}");
-            
+            description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
+
             description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
             var embed = new EmbedBuilder()
@@ -577,11 +569,11 @@ namespace CastorDJ.Modules
 
                 if (current)
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 

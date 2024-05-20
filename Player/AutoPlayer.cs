@@ -247,11 +247,11 @@ namespace CastorDJ.Player
 
                         if (current)
                         {
-                            textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                            textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                         }
                         else
                         {
-                            textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                            textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                         }
                     }
 
@@ -269,10 +269,8 @@ namespace CastorDJ.Player
                 var currentTrack = Queue[QueueIndex];
 
                 var description = new StringBuilder();
-                description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
+                description.AppendLine($"[{currentTrack.Track.Title}]({currentTrack.Track.Uri}) - {currentTrack.Track.Duration}");
                 description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(currentTrack.Requester)}");
-
-                description.AppendLine($"[Link]({currentTrack.Track.Uri})");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -284,7 +282,7 @@ namespace CastorDJ.Player
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
 
-                await base.PlayAsync(currentTrack.Track);
+                await PlayAsync(currentTrack.Track, cancellationToken: cancellationToken);
                 return;
             }
 
@@ -297,10 +295,8 @@ namespace CastorDJ.Player
                 var currentTrack = Queue[QueueIndex];
 
                 var description = new StringBuilder();
-                description.AppendLine($"{currentTrack.Track.Title} - {currentTrack.Track.Duration}");
+                description.AppendLine($"[{currentTrack.Track.Title}]({currentTrack.Track.Uri}) - {currentTrack.Track.Duration}");
                 description.AppendLine($"Adicionado por: {ControlMessage.Author.Mention}");
-
-                description.AppendLine($"[Link]({currentTrack.Track.Uri})");
 
                 var embeds = new EmbedBuilder()
                     .WithTitle("🔈 Tocando")
@@ -374,19 +370,30 @@ namespace CastorDJ.Player
         public async ValueTask NotifyPlayerInactiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (ControlMessage != null)
+            {
+                var channel = ControlMessage.Channel as ITextChannel;
+                await channel.SendMessageAsync("Desconectando por inatividade...").ConfigureAwait(false);
+            }
             await DisconnectAsync();
         }
 
-        public ValueTask NotifyPlayerActiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
+        public async ValueTask NotifyPlayerActiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return default; // do nothing
+            if (ControlMessage != null)
+            {
+                var channel = ControlMessage.Channel as ITextChannel;
+                await channel.SendMessageAsync("Player está ativo novamente.");
+            }
         }
 
-        public ValueTask NotifyPlayerTrackedAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
+        public async ValueTask NotifyPlayerTrackedAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return default; // do nothing
+            if (ControlMessage != null)
+            {
+                var channel = ControlMessage.Channel as ITextChannel;
+                await channel.SendMessageAsync("Player está sendo rastreado como inativo.");
+            }
         }
     }
 }
