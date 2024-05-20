@@ -7,6 +7,7 @@ using Lavalink4NET.Extensions;
 using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
+using Lavalink4NET.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,6 +41,8 @@ namespace CastorDJ
                     services.AddScoped<IVolumeService, VolumeService>();
 
                     services.AddLavalink();
+                    services.AddInactivityTracking();
+
                     services.ConfigureLavalink(config =>
                     {
                         config.BaseAddress = new Uri("http://lavalink:2333/");
@@ -47,9 +50,15 @@ namespace CastorDJ
                         config.ReadyTimeout = TimeSpan.FromSeconds(15);
                     });
 
+                    services.ConfigureInactivityTracking(x =>
+                    {
+                    });
+
                     services.Configure<UsersInactivityTrackerOptions>(config =>
                     {
+                        config.Threshold = 1;
                         config.Timeout = TimeSpan.FromSeconds(5);
+                        config.ExcludeBots = true;
                     });
 
                 })
