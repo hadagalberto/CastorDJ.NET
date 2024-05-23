@@ -273,17 +273,25 @@ namespace CastorDJ.Modules
 
                 if (i == position)
                 {
-                    textoFila.AppendLine($"{i + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{i + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{i + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{i + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
             var component = GetFilaComponent();
 
-            var filaMessage = await FollowupAsync(textoFila.ToString(), components: component).ConfigureAwait(false);
+            if (player.FilaMessage is not null)
+            {
+                await player.FilaMessage.ModifyAsync(x => x.Content = textoFila.ToString()).ConfigureAwait(false);
+                await player.FilaMessage.ModifyAsync(x => x.Components = component).ConfigureAwait(false);
+                await player.FilaMessage.ModifyAsync(x => x.Embed = null).ConfigureAwait(false);
+                return;
+            }
+
+            var filaMessage = await FollowupAsync(textoFila.ToString(), components: component, embed: null).ConfigureAwait(false);
             
             player.FilaMessage = filaMessage;
         }
