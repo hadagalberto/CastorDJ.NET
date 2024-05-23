@@ -600,6 +600,69 @@ namespace CastorDJ.Modules
             }
         }
 
+        [SlashCommand("limpar", "Limpa a fila de músicas", runMode: RunMode.Async)]
+        public async Task ClearQueue()
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
+
+            if (player is null)
+            {
+                await RespondAsync("Erro ao limpar fila!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            await player.ClearQueue().ConfigureAwait(false);
+
+            await RespondAsync("Fila limpa!", ephemeral: true).ConfigureAwait(false);
+        }
+
+        [SlashCommand("pular", "Pula para a música especificada", runMode: RunMode.Async)]
+        public async Task SkipTo([Summary("posição")] int position)
+        {
+            var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
+
+            if (player is null)
+            {
+                await RespondAsync("Erro ao pular música!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            if (position < 1 || position > player.Queue.Count)
+            {
+                await RespondAsync("Posição inválida!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            await player.SkipToAsync(position - 1).ConfigureAwait(false);
+
+            var track = player.Queue.ElementAt(player.QueueIndex);
+
+            var description = new StringBuilder();
+            description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
+
+            description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
+
+            var embed = new EmbedBuilder()
+                .WithTitle("🔈 Tocando")
+                .WithDescription(description.ToString())
+                .WithUrl(track.Track.Uri.ToString())
+                .WithImageUrl(track.Track.ArtworkUri.ToString())
+                .WithFooter($"Posição: {position}")
+                .Build();
+
+            var controlMessage = player.ControlMessage;
+
+            if (controlMessage is not null)
+            {
+                await controlMessage.ModifyAsync(x => x.Embed = embed).ConfigureAwait(false);
+                await DeferAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                await RespondAsync(embed: embed, ephemeral: true).ConfigureAwait(false);
+            }
+        }
+
         /// <summary>
         ///     Gets the guild player asynchronously.
         /// </summary>

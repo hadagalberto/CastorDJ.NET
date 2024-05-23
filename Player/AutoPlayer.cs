@@ -212,6 +212,29 @@ namespace CastorDJ.Player
             return default;
         }
 
+        public ValueTask ClearQueue()
+        {
+            _ = Task.Run(() =>
+            {
+                var currentTrack = Queue[QueueIndex];
+                Queue.Clear();
+
+                Queue.Add(currentTrack);
+                QueueIndex = 0;
+            });
+            return default;
+        }
+
+        public async ValueTask SkipToAsync(int index)
+        {
+            if (index < 0 || index >= Queue.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), "O índice está fora do intervalo.");
+            }
+            QueueIndex = index;
+            await NextTrackAsync();
+        }
+
         protected override async ValueTask NotifyTrackEndedAsync(ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
         {
             if (FilaMessage != null)
