@@ -600,7 +600,7 @@ namespace CastorDJ.Modules
             }
         }
 
-        [SlashCommand("limpar", "Limpa a fila de músicas", runMode: RunMode.Async)]
+        [SlashCommand("limparfila", "Limpa a fila de músicas", runMode: RunMode.Async)]
         public async Task ClearQueue()
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
