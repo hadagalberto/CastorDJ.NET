@@ -516,11 +516,11 @@ namespace CastorDJ.Modules
 
                 if (current)
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **{item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     {item.Track.Title} - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
                 }
             }
 
