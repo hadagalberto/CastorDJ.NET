@@ -287,11 +287,13 @@ namespace CastorDJ.Modules
             {
                 await player.FilaMessage.ModifyAsync(x => x.Content = textoFila.ToString()).ConfigureAwait(false);
                 await player.FilaMessage.ModifyAsync(x => x.Components = component).ConfigureAwait(false);
-                await player.FilaMessage.ModifyAsync(x => x.Embed = null).ConfigureAwait(false);
                 return;
             }
+            var embed = new EmbedBuilder()
+                .WithImageUrl("https://i.imgur.com/mXlvMrq.png")
+                .Build();
 
-            var filaMessage = await FollowupAsync(textoFila.ToString(), components: component, embed: null).ConfigureAwait(false);
+            var filaMessage = await FollowupAsync(textoFila.ToString(), components: component, embed: embed).ConfigureAwait(false);
             
             player.FilaMessage = filaMessage;
         }

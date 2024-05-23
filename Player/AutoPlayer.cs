@@ -257,7 +257,6 @@ namespace CastorDJ.Player
 
                     await FilaMessage.ModifyAsync(x => {
                         x.Content = textoFila.ToString();
-                        x.Embed = null;
                     }).ConfigureAwait(false);
                 });
             }
