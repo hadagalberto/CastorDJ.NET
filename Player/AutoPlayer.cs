@@ -400,7 +400,8 @@ namespace CastorDJ.Player
                 var channel = ControlMessage.Channel as ITextChannel;
                 await channel.SendMessageAsync("Desconectando por inatividade...").ConfigureAwait(false);
             }
-            await DisconnectAsync();
+            if (!IsPaused)
+                await DisconnectAsync(cancellationToken: cancellationToken);
         }
 
         public async ValueTask NotifyPlayerActiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
