@@ -60,10 +60,9 @@ namespace CastorDJ.Services
                 _ = Task.Run(() => {
                     var playerCount = _audioService.Players.GetPlayers<AutoPlayer>().Count();
 
-                    // atualizar o status do bot para mostrar quantos players estão ativos
                     _discord.SetActivityAsync(playerCount > 0
-                        ? new Game($"em {playerCount} players", ActivityType.Watching)
-                        : new Game("em nenhum player", ActivityType.Watching));
+                        ? new Game($"Tocando música em {playerCount} players", ActivityType.CustomStatus)
+                        : new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
                     
                 });
 

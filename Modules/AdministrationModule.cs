@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CastorDJ.Utils;
 
 namespace CastorDJ.Modules
 {
@@ -31,6 +32,27 @@ namespace CastorDJ.Modules
             
             await Task.Delay(delay);
             await m.DeleteAsync();
+        }
+
+        [SlashCommand("info", "Exibe as informações atuais do bot")]
+        public async ValueTask VersaoAsync()
+        {
+            var commit = Environment.GetEnvironmentVariable("COMMIT");
+            var buildTime = Environment.GetEnvironmentVariable("BUILD_DATE");
+
+            var texto = "Esse bot é open source, o que significa que você pode ter o seu próprio exatamente igual a esse. O link do código fonte [está aqui](https://github.com/hadagalberto/CastorDJ.NET)";
+            texto += $"Commit: {commit}\n";
+            texto += $"Build: {buildTime}\n";
+            texto += $"Tempo ativo: {RuntimeTracker.Instance.GetElapsedTimeInPortuguese()}\n\n";
+            texto += "Desenvolvido por: @hadagalberto\n";
+
+            var embed = new EmbedBuilder()
+                .WithTitle("Informações do Bot")
+                .WithDescription(texto)
+                .WithColor(Color.Blue)
+                .Build();
+
+            await RespondAsync("Castor DJ",embed: embed);
         }
 
     }
