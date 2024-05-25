@@ -4,14 +4,11 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Lavalink4NET.Extensions;
-using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
-using Lavalink4NET.Protocol;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace CastorDJ
 {
@@ -35,7 +32,7 @@ namespace CastorDJ
                     });
 
                     services.AddSingleton(discordClient);
-                    services.AddSingleton<InteractionService>();
+                    services.AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()));
                     services.AddHostedService<InteractionHandlingService>();
                     services.AddHostedService<DiscordStartupService>();
                     services.AddScoped<IVolumeService, VolumeService>();
