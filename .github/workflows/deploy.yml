@@ -26,6 +26,6 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd CastorDJ
+            cd CastorDJ.NET
             git pull origin master
             docker compose up --build -d
