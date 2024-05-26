@@ -2,6 +2,7 @@
 using CastorDJ.Utils;
 using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Lavalink4NET;
 using Microsoft.Extensions.Hosting;
@@ -37,11 +38,18 @@ namespace CastorDJ.Services
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _discord.Ready += () => _interactions.RegisterCommandsGloballyAsync(true);
+            _discord.Ready += OnReady;
 
             await _interactions.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
 
             _discord.InteractionCreated += OnInteractionAsync;
+        }
+
+        private async Task<IReadOnlyCollection<RestGlobalCommand>> OnReady()
+        {
+            await _discord.SetActivityAsync(new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
+
+            return await _interactions.RegisterCommandsGloballyAsync(true);
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -58,6 +66,7 @@ namespace CastorDJ.Services
                 var result = await _interactions.ExecuteCommandAsync(context, _services);
 
                 _ = Task.Run(() => {
+                    Thread.Sleep(5000);
                     var playerCount = _audioService.Players.GetPlayers<AutoPlayer>().Count();
 
                     _discord.SetActivityAsync(playerCount > 0
