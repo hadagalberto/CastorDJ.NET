@@ -1,11 +1,7 @@
-﻿using Discord;
-using Discord.Interactions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using CastorDJ.Utils;
+using Discord;
+using Discord.Interactions;
 
 namespace CastorDJ.Modules
 {
@@ -53,6 +49,23 @@ namespace CastorDJ.Modules
                 .Build();
 
             await RespondAsync("Castor DJ",embed: embed);
+        }
+
+        [SlashCommand("ajuda", "Exibe os comandos disponíveis")]
+        public async ValueTask HelpAsync()
+        {
+            var metodos = ReflectionHelper.GetCommands();
+
+            var sb = new StringBuilder();
+
+            sb.AppendLine("Comandos disponíveis:");
+
+            foreach (var m in metodos)
+            {
+                sb.AppendLine($"`/{m.Name}` - {m.Description}");
+            }
+
+            await RespondAsync(sb.ToString());
         }
 
     }
