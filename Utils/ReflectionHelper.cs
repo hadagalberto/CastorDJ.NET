@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.ComponentModel;
+using System.Reflection;
 using Discord.Interactions;
 
 namespace CastorDJ.Utils
@@ -17,6 +18,8 @@ namespace CastorDJ.Utils
             {
                 var methods = c.GetMethods().Where(x => x.GetCustomAttribute<SlashCommandAttribute>() != null);
 
+                var description = c.GetCustomAttribute<DescriptionAttribute>()?.Description;
+
                 foreach (var m in methods)
                 {
                     var attr = m.GetCustomAttribute<SlashCommandAttribute>();
@@ -24,7 +27,8 @@ namespace CastorDJ.Utils
                     {
                         Module = c.Name,
                         Name = attr.Name,
-                        Description = attr.Description
+                        Description = attr.Description,
+                        ModuleDescription = description
                     });
                 }
             }
@@ -37,6 +41,7 @@ namespace CastorDJ.Utils
     public class CommandInfo
     {
         public string Module { get; set; }
+        public string ModuleDescription { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
     }

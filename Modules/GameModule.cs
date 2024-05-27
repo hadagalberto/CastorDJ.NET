@@ -1,13 +1,11 @@
 ﻿using Discord.Interactions;
 using Discord.WebSocket;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.ComponentModel;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CastorDJ.Modules
 {
+    [Description("Comandos de games 🎮")]
     public class GameModule : InteractionModuleBase<SocketInteractionContext>
     {
 

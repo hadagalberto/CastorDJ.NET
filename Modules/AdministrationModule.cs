@@ -1,10 +1,12 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 using CastorDJ.Utils;
 using Discord;
 using Discord.Interactions;
 
 namespace CastorDJ.Modules
 {
+    [Description("Comandos de administração ")]
     public class AdministrationModule : InteractionModuleBase<SocketInteractionContext>
     {
 
@@ -31,16 +33,16 @@ namespace CastorDJ.Modules
         }
 
         [SlashCommand("info", "Exibe as informações atuais do bot")]
-        public async ValueTask VersaoAsync()
+        public async Task VersaoAsync()
         {
             var commit = Environment.GetEnvironmentVariable("COMMIT");
             var buildTime = Environment.GetEnvironmentVariable("BUILD_DATE");
 
-            var texto = "Esse bot é open source, o que significa que você pode ter o seu próprio exatamente igual a esse. O link do código fonte [está aqui](https://github.com/hadagalberto/CastorDJ.NET)";
+            var texto = "Esse bot é open source, o que significa que você pode ter o seu próprio exatamente igual a esse. O link do código fonte [está aqui](https://github.com/hadagalberto/CastorDJ.NET)\n\n";
             texto += $"Commit: {commit}\n";
             texto += $"Build: {buildTime}\n";
             texto += $"Tempo ativo: {RuntimeTracker.Instance.GetElapsedTimeInPortuguese()}\n\n";
-            texto += "Desenvolvido por: @hadagalberto\n";
+            texto += $"Desenvolvido por: {MentionUtils.MentionUser(852673456351739935)}\n";
 
             var embed = new EmbedBuilder()
                 .WithTitle("Informações do Bot")
@@ -48,11 +50,11 @@ namespace CastorDJ.Modules
                 .WithColor(Color.Blue)
                 .Build();
 
-            await RespondAsync("Castor DJ",embed: embed);
+            await RespondAsync(embed: embed);
         }
 
         [SlashCommand("ajuda", "Exibe os comandos disponíveis")]
-        public async ValueTask HelpAsync()
+        public async Task HelpAsync()
         {
             var metodos = ReflectionHelper.GetCommands();
 
@@ -60,9 +62,19 @@ namespace CastorDJ.Modules
 
             sb.AppendLine("Comandos disponíveis:");
 
-            foreach (var m in metodos)
+            sb.AppendLine();
+
+            var modules = metodos.Select(x => new {x.Module, x.ModuleDescription}).Distinct();
+
+            foreach (var module in modules)
             {
-                sb.AppendLine($"`/{m.Name}` - {m.Description}");
+                sb.AppendLine($"**{module.ModuleDescription}**");
+                foreach (var m in metodos.Where(x => x.Module == module.Module).OrderBy(x => x.Name))
+                {
+                    sb.AppendLine($"`/{m.Name}` - {m.Description}");
+                }
+
+                sb.AppendLine();
             }
 
             await RespondAsync(sb.ToString());

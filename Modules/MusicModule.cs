@@ -7,11 +7,13 @@ using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Players;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
+using System.ComponentModel;
 using System.Text;
 
 namespace CastorDJ.Modules
 {
     [RequireContext(ContextType.Guild)]
+    [Description("Comandos de músicas \ud83c\udfb5")]
     public class MusicModule : InteractionModuleBase<SocketInteractionContext>
     {
 
@@ -54,7 +56,7 @@ namespace CastorDJ.Modules
         /// </summary>
         /// <param name="query">the search query</param>
         /// <returns>a task that represents the asynchronous operation</returns>
-        [SlashCommand("play", description: "Plays music", runMode: RunMode.Async)]
+        [SlashCommand("play", description: "Toca uma música ou link do YouTube", runMode: RunMode.Async)]
         public async Task Play([Summary("música"), Autocomplete(typeof(MusicAutoCompleteHandler))] string query)
         {
             var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
