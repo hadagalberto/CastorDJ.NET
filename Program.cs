@@ -9,6 +9,7 @@ using Lavalink4NET.InactivityTracking.Trackers.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace CastorDJ
 {
@@ -60,6 +61,21 @@ namespace CastorDJ
 
                 })
                 .Build();
+
+            var configuration = host.Services.GetRequiredService<IConfiguration>();
+
+            var sentryDsn = configuration["sentryDsn"];
+            if (!string.IsNullOrWhiteSpace(sentryDsn))
+            {
+                SentrySdk.Init(opt =>
+                {
+                    opt.Dsn = sentryDsn;
+                    opt.Debug = true;
+                    opt.AutoSessionTracking = true;
+                    opt.TracesSampleRate = 1.0;
+                    opt.Release = Environment.GetEnvironmentVariable("COMMIT");
+                });
+            }
 
             await host.RunAsync();
         }
