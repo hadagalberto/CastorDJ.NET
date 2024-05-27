@@ -47,7 +47,7 @@ namespace CastorDJ.Services
 
         private async Task<IReadOnlyCollection<RestGlobalCommand>> OnReady()
         {
-            await _discord.SetActivityAsync(new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
+            //await _discord.SetActivityAsync(new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
 
             return await _interactions.RegisterCommandsGloballyAsync(true);
         }
@@ -60,31 +60,39 @@ namespace CastorDJ.Services
 
         private async Task OnInteractionAsync(SocketInteraction interaction)
         {
+            var transaction = SentrySdk.StartTransaction("interaction-transaction", "interaction-transaction-received");
             try
             {
                 var context = new SocketInteractionContext(_discord, interaction);
                 var result = await _interactions.ExecuteCommandAsync(context, _services);
 
-                _ = Task.Run(() => {
+                _ = Task.Run(() =>
+                {
                     Thread.Sleep(5000);
                     var playerCount = _audioService.Players.GetPlayers<AutoPlayer>().Count();
 
                     _discord.SetActivityAsync(playerCount > 0
                         ? new Game($"Tocando música em {playerCount} players", ActivityType.CustomStatus)
                         : new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
-                    
+
                 });
 
                 if (!result.IsSuccess)
                     await context.Channel.SendMessageAsync(result.ToString());
             }
-            catch
+            catch(Exception ex)
             {
                 if (interaction.Type == InteractionType.ApplicationCommand)
                 {
                     await interaction.GetOriginalResponseAsync()
                         .ContinueWith(msg => msg.Result.DeleteAsync());
                 }
+
+                SentrySdk.CaptureException(ex);
+            }
+            finally
+            {
+                transaction.Finish();
             }
         }
 
