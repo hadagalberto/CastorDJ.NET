@@ -17,14 +17,15 @@ namespace CastorDJ.Player
     public sealed class AutoPlayer : LavalinkPlayer, IInactivityPlayerListener
     {
         private readonly IAudioService _audioService;
-        public static readonly YoutubeClient YoutubeClient = new YoutubeClient();
+        public static readonly YoutubeClient YoutubeClient = new();
         public IUserMessage ControlMessage { get; set; }
         public IUserMessage FilaMessage { get; set; }
         public int FilaSkip { get; set; } = 0;
-        public List<QueueItem> Queue { get; set; } = new List<QueueItem>();
+        public List<QueueItem> Queue { get; set; } = [];
         public int QueueIndex { get; set; } = 0;
         private YoutubeClient _youtubeClient;
-        public List<LavalinkTrack> SimilarTracks = new List<LavalinkTrack>();
+        public List<LavalinkTrack> SimilarTracks = new();
+        public bool Pausado = false;
 
         private readonly SocketSelfUser BotUser;
 
@@ -400,7 +401,7 @@ namespace CastorDJ.Player
                 var channel = ControlMessage.Channel as ITextChannel;
                 await channel.SendMessageAsync("Desconectando por inatividade...").ConfigureAwait(false);
             }
-            if (!IsPaused)
+            if (!Pausado)
                 await DisconnectAsync(cancellationToken: cancellationToken);
         }
 

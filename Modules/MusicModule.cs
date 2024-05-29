@@ -343,12 +343,14 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            if (player.IsPaused)
+            if (player.Pausado)
             {
+                player.Pausado = false;
                 await player.ResumeAsync().ConfigureAwait(false);
             }
             else
             {
+                player.Pausado = true;
                 await player.PauseAsync().ConfigureAwait(false);
             }
 
