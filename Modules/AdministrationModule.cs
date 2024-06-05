@@ -6,6 +6,8 @@ using Discord.Interactions;
 
 namespace CastorDJ.Modules
 {
+    [RequireContext(ContextType.Guild)]
+    [RequireUserPermission(GuildPermission.Administrator)]
     [Description("Comandos de administração ")]
     public class AdministrationModule : InteractionModuleBase<SocketInteractionContext>
     {

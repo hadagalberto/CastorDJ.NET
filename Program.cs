@@ -4,12 +4,14 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Lavalink4NET.Extensions;
+using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace CastorDJ
 {
@@ -21,6 +23,10 @@ namespace CastorDJ
                 .ConfigureAppConfiguration(config =>
                 {
                     config.AddJsonFile("config.json", false);
+                })
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
                 })
                 .ConfigureServices(services =>
                 {
@@ -43,13 +49,14 @@ namespace CastorDJ
 
                     services.ConfigureLavalink(config =>
                     {
-                        config.BaseAddress = new Uri("http://lavalink:2333/");
+                        config.BaseAddress = new Uri("http://localhost:2333/");
                         config.Passphrase = "senhasegura";
                         config.ReadyTimeout = TimeSpan.FromSeconds(15);
                     });
 
                     services.ConfigureInactivityTracking(x =>
                     {
+                        x.InactivityBehavior = PlayerInactivityBehavior.None;
                     });
 
                     services.Configure<UsersInactivityTrackerOptions>(config =>
@@ -78,6 +85,29 @@ namespace CastorDJ
             }
 
             await host.RunAsync();
+        }
+    }
+
+    public class Startup
+    {
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddControllers();
+        }
+
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
     }
 }
