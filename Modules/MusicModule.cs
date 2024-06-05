@@ -102,7 +102,7 @@ namespace CastorDJ.Modules
                     .WithDescription(description.ToString())
                     .WithUrl(track.Track.Uri.ToString())
                     .WithImageUrl(track.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {position + 1}")
+                    .WithFooter($"Posição: {position + 1} de {player.Queue.Count}")
                     .Build();
 
                 var sendMessage = await FollowupAsync(embed: embed, components: component).ConfigureAwait(false);
@@ -162,7 +162,7 @@ namespace CastorDJ.Modules
                     .WithDescription(description.ToString())
                     .WithUrl(track.Track.Uri.ToString())
                     .WithImageUrl(track.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {position + 1}")
+                    .WithFooter($"Posição: {position + 1} de {player.Queue.Count}")
                     .Build();
 
                 var sendMessage = await FollowupAsync(embed: embed, components: component).ConfigureAwait(false);
@@ -214,7 +214,7 @@ namespace CastorDJ.Modules
                     .WithDescription(description.ToString())
                     .WithUrl(track.Track.Uri.ToString())
                     .WithImageUrl(track.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {position + 1}")
+                    .WithFooter($"Posição: {position + 1} de {player.Queue.Count}")
                     .Build();
 
                 await sendMessage.ModifyAsync(x => { x.Embed = embed; x.Components = component; x.Content = ""; }).ConfigureAwait(false);
@@ -412,7 +412,7 @@ namespace CastorDJ.Modules
                 .WithDescription(description.ToString())
                 .WithUrl(track.Track.Uri.ToString())
                 .WithImageUrl(track.Track.ArtworkUri.ToString())
-                .WithFooter($"Posição: {position + 1}")
+                .WithFooter($"Posição: {position + 1} de {player.Queue.Count}")
                 .Build();
 
             var controlMessage = player.ControlMessage;
@@ -462,7 +462,7 @@ namespace CastorDJ.Modules
                 .WithDescription(description.ToString())
                 .WithUrl(track.Track.Uri.ToString())
                 .WithImageUrl(track.Track.ArtworkUri.ToString())
-                .WithFooter($"Posição: {position + 1}")
+                .WithFooter($"Posição: {position + 1} de {player.Queue.Count}")
                 .Build();
 
             var controlMessage = player.ControlMessage;
@@ -623,6 +623,7 @@ namespace CastorDJ.Modules
         [SlashCommand("pular", "Pula para a música especificada", runMode: RunMode.Async)]
         public async Task SkipTo([Summary("posição")] int position)
         {
+            await DeferAsync().ConfigureAwait(false);
             var player = await GetPlayerAsync(connectToVoiceChannel: false).ConfigureAwait(false);
 
             if (player is null)
@@ -637,7 +638,7 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            await player.SkipToAsync(position - 1).ConfigureAwait(false);
+            await player.SkipToAsync(position).ConfigureAwait(false);
 
             var track = player.Queue.ElementAt(player.QueueIndex);
 
@@ -651,7 +652,7 @@ namespace CastorDJ.Modules
                 .WithDescription(description.ToString())
                 .WithUrl(track.Track.Uri.ToString())
                 .WithImageUrl(track.Track.ArtworkUri.ToString())
-                .WithFooter($"Posição: {position}")
+                .WithFooter($"Posição: {position} de {player.Queue.Count}")
                 .Build();
 
             var controlMessage = player.ControlMessage;
@@ -691,7 +692,7 @@ namespace CastorDJ.Modules
             {
                 var errorMessage = result.Status switch
                 {
-                    PlayerRetrieveStatus.UserNotInVoiceChannel => "You are not connected to a voice channel.",
+                    PlayerRetrieveStatus.UserNotInVoiceChannel => "Você não está em um canal de voz",
                     PlayerRetrieveStatus.BotNotConnected => "The bot is currently not connected.",
                     _ => "Unknown error.",
                 };

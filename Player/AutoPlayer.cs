@@ -303,7 +303,7 @@ namespace CastorDJ.Player
                     .WithDescription(description.ToString())
                     .WithUrl(currentTrack.Track.Uri.ToString())
                     .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {QueueIndex + 1}")
+                    .WithFooter($"Posição: {QueueIndex + 1} de {Queue.Count}")
                     .Build();
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
@@ -329,7 +329,7 @@ namespace CastorDJ.Player
                     .WithDescription(description.ToString())
                     .WithUrl(currentTrack.Track.Uri.ToString())
                     .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {QueueIndex + 1}")
+                    .WithFooter($"Posição: {QueueIndex + 1} de {Queue.Count}")
                     .Build();
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
@@ -350,7 +350,7 @@ namespace CastorDJ.Player
                     .WithDescription(description.ToString())
                     .WithUrl(currentTrack.Track.Uri.ToString())
                     .WithImageUrl(currentTrack.Track.ArtworkUri.ToString())
-                    .WithFooter($"Posição: {QueueIndex + 1}")
+                    .WithFooter($"Posição: {QueueIndex + 1} de {Queue.Count}")
                     .Build();
 
                 await ControlMessage.ModifyAsync(x => x.Embed = embeds).ConfigureAwait(false);
