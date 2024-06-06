@@ -35,13 +35,26 @@ namespace CastorDJ.Modules
         [SlashCommand("info", "Exibe as informações atuais do bot")]
         public async Task VersaoAsync()
         {
-            var commit = Environment.GetEnvironmentVariable("COMMIT");
-            var buildTime = Environment.GetEnvironmentVariable("BUILD_DATE");
+            // read version.txt file in the app root, commit is the first line and build time is the second line
+            string commit;
+            string buildTime;
+            try
+            {
+                commit = (await File.ReadAllTextAsync("version.txt")).Split('\n')[0];
+                var buildTimeTxt = (await File.ReadAllTextAsync("version.txt")).Split('\n')[1];
+                DateTime.TryParse(buildTimeTxt, out var buildTimeDt);
+                buildTime = buildTimeDt.ToString("dd/MM/yyyy HH:mm:ss");
+            }
+            catch (Exception)
+            {
+                commit = "Desconhecido";
+                buildTime = "Desconhecido";
+            }
 
             var texto = "Esse bot é open source, o que significa que você pode ter o seu próprio exatamente igual a esse. O link do código fonte [está aqui](https://github.com/hadagalberto/CastorDJ.NET)\n\n";
-            texto += $"Commit: {commit}\n";
-            texto += $"Build: {buildTime}\n";
-            texto += $"Tempo ativo: {RuntimeTracker.Instance.GetElapsedTimeInPortuguese()}\n\n";
+            texto += $"Commit:           _*{commit}*_\n";
+            texto += $"Data de build:    _*{buildTime}*_\n";
+            texto += $"Tempo ativo:      _*{RuntimeTracker.Instance.GetElapsedTimeInPortuguese()}*_\n\n";
             texto += $"Desenvolvido por: {MentionUtils.MentionUser(852673456351739935)}\n";
 
             var embed = new EmbedBuilder()

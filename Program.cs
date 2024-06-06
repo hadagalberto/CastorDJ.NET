@@ -1,9 +1,11 @@
 ﻿using CastorDJ.Player;
 using CastorDJ.Services;
+using CastorDJ.Utils;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Lavalink4NET.Extensions;
+using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +52,7 @@ namespace CastorDJ
 
                     services.ConfigureInactivityTracking(x =>
                     {
+                        x.InactivityBehavior = PlayerInactivityBehavior.Pause;
                     });
 
                     services.Configure<UsersInactivityTrackerOptions>(config =>
@@ -61,6 +64,8 @@ namespace CastorDJ
 
                 })
                 .Build();
+
+            _ = RuntimeTracker.Instance;
 
             var configuration = host.Services.GetRequiredService<IConfiguration>();
 

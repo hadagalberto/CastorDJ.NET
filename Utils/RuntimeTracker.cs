@@ -5,11 +5,11 @@ namespace CastorDJ.Utils
 {
     public class RuntimeTracker
     {
-        private static readonly Lazy<RuntimeTracker> instance = new Lazy<RuntimeTracker>(() => new RuntimeTracker());
+        private static readonly Lazy<RuntimeTracker> instance = new (() => new RuntimeTracker());
 
         public static RuntimeTracker Instance => instance.Value;
 
-        private Stopwatch _stopwatch;
+        private readonly Stopwatch _stopwatch;
 
         private RuntimeTracker()
         {
@@ -51,8 +51,6 @@ namespace CastorDJ.Utils
             {
                 sb.Append($"{elapsed.Seconds} segundo{(elapsed.Seconds > 1 ? "s" : "")}. ");
             }
-
-            //sb.Append($"{elapsed.Milliseconds} milissegundo{(elapsed.Milliseconds > 1 ? "s" : "")}");
 
             return sb.ToString();
         }
