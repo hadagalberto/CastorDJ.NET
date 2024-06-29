@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CastorDJ": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

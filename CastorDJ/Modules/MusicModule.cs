@@ -9,6 +9,9 @@ using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 using System.ComponentModel;
 using System.Text;
+using CastorDJ.Data;
+using CastorDJ.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CastorDJ.Modules
 {
@@ -18,6 +21,7 @@ namespace CastorDJ.Modules
     {
 
         private readonly IAudioService _audioService;
+        private readonly CastorDJDbContext _dbContext;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="MusicModule"/> class.
@@ -26,11 +30,12 @@ namespace CastorDJ.Modules
         /// <exception cref="ArgumentNullException">
         ///     thrown if the specified <paramref name="audioService"/> is <see langword="null"/>.
         /// </exception>
-        public MusicModule(IAudioService audioService)
+        public MusicModule(IAudioService audioService, CastorDJDbContext dbContext)
         {
             ArgumentNullException.ThrowIfNull(audioService);
 
             _audioService = audioService;
+            _dbContext = dbContext;
         }
 
         /// <summary>
@@ -59,6 +64,7 @@ namespace CastorDJ.Modules
         [SlashCommand("play", description: "Toca uma música ou link do YouTube", runMode: RunMode.Async)]
         public async Task Play([Summary("música"), Autocomplete(typeof(MusicAutoCompleteHandler))] string query)
         {
+            await HandleServers();
             var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
 
             if (player is null)
@@ -723,7 +729,7 @@ namespace CastorDJ.Modules
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(properties);
 
-            return ValueTask.FromResult(new AutoPlayer(properties, Context.Client.CurrentUser));
+            return ValueTask.FromResult(new AutoPlayer(properties, Context.Client.CurrentUser, Context.Guild));
         }
 
         private MessageComponent GetControlsComponent(AutoPlayer player)
@@ -745,6 +751,28 @@ namespace CastorDJ.Modules
                 .Build();
 
             return component;
+        }
+
+        private async ValueTask HandleServers()
+        {
+            var serverId = Context.Guild.Id;
+
+            var server = await _dbContext.DiscordServers
+                .FirstOrDefaultAsync(x => x.DiscordId == serverId);
+
+            if (server is null)
+            {
+                var newServer = new DiscordServer
+                {
+                    DiscordId = serverId,
+                    Name = Context.Guild.Name,
+                    DateAdded = DateTime.Now
+                };
+
+                _dbContext.DiscordServers.Add(newServer);
+
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }

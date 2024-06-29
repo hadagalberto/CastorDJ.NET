@@ -10,7 +10,10 @@ using YoutubeExplode.Common;
 using Lavalink4NET.InactivityTracking.Players;
 using Lavalink4NET.InactivityTracking.Trackers;
 using System.Text;
+using CastorDJ.Data;
+using CastorDJ.Models;
 using Discord.WebSocket;
+using Microsoft.EntityFrameworkCore;
 
 namespace CastorDJ.Player
 {
@@ -29,17 +32,24 @@ namespace CastorDJ.Player
 
         private readonly SocketSelfUser BotUser;
 
-        public AutoPlayer(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, SocketSelfUser botUser)
+        private readonly CastorDJDbContext _dbContext;
+        private readonly SocketGuild _guild;
+
+        public AutoPlayer(IPlayerProperties<AutoPlayer, AutoPlayerOptions> properties, SocketSelfUser botUser, SocketGuild guild)
             : base(properties)
         {
             _audioService = properties.ServiceProvider.GetRequiredService<IAudioService>();
             _youtubeClient = new YoutubeClient();
             BotUser = botUser;
+            _dbContext = properties.ServiceProvider.GetRequiredService<CastorDJDbContext>();
+            _guild = guild;
         }
 
         public async ValueTask<int> PlayAsync(QueueItem track)
         {
             Queue.Add(track);
+
+            _ = Task.Run(async () => await HandlePlayedTracks());
 
             _ = Task.Run(() => FindSimilarTracks(track.Track));
 
@@ -115,8 +125,7 @@ namespace CastorDJ.Player
 
             return playlist;
         }
-
-        // play immediately
+        
         private async ValueTask PlayNowAsync(LavalinkTrack track)
         {
             Queue.Add(new QueueItem
@@ -411,6 +420,30 @@ namespace CastorDJ.Player
 
         public async ValueTask NotifyPlayerTrackedAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
         {
+        }
+
+        private async ValueTask HandlePlayedTracks()
+        {
+            var currentTrack = Queue[QueueIndex];
+
+            var discordServer = await _dbContext.DiscordServers.FirstOrDefaultAsync(x => x.DiscordId == _guild.Id);
+
+            if (discordServer is null)
+                return;
+
+            var playedTrack = new PlayedTrack
+            {
+                IdDiscordServer = discordServer.IdDiscordServer,
+                IdPlayedTrack = Guid.NewGuid(),
+                Name = currentTrack.Track.Title,
+                YoutubeUrl = currentTrack.Track.Uri.ToString(),
+                Duration = currentTrack.Track.Duration,
+                DatePlayed = DateTime.Now,
+            };
+
+            await _dbContext.PlayedTracks.AddAsync(playedTrack);
+
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

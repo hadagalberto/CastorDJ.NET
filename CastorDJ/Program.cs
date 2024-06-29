@@ -1,4 +1,5 @@
-﻿using CastorDJ.Player;
+﻿using CastorDJ.Data;
+using CastorDJ.Player;
 using CastorDJ.Services;
 using CastorDJ.Utils;
 using Discord;
@@ -8,10 +9,10 @@ using Lavalink4NET.Extensions;
 using Lavalink4NET.InactivityTracking;
 using Lavalink4NET.InactivityTracking.Extensions;
 using Lavalink4NET.InactivityTracking.Trackers.Users;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace CastorDJ
 {
@@ -32,6 +33,11 @@ namespace CastorDJ
                         MessageCacheSize = 10000,
                         LogLevel = LogSeverity.Verbose,
                         GatewayIntents = GatewayIntents.GuildMembers | GatewayIntents.Guilds | GatewayIntents.GuildVoiceStates,
+                    });
+
+                    services.AddDbContext<CastorDJDbContext>(opt =>
+                    {
+                        opt.UseSqlServer("Server=sql-server,1433;Database=DiscNite;User Id=sa;Password=SenhaSegura123;TrustServerCertificate=True;");
                     });
 
                     services.AddSingleton(discordClient);
@@ -81,6 +87,10 @@ namespace CastorDJ
                     opt.Release = Environment.GetEnvironmentVariable("COMMIT");
                 });
             }
+
+            var dbContext = host.Services.GetRequiredService<CastorDJDbContext>();
+
+            await dbContext.Database.MigrateAsync();
 
             await host.RunAsync();
         }

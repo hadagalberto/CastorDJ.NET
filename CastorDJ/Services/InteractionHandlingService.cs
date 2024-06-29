@@ -66,17 +66,6 @@ namespace CastorDJ.Services
                 var context = new SocketInteractionContext(_discord, interaction);
                 var result = await _interactions.ExecuteCommandAsync(context, _services);
 
-                _ = Task.Run(() =>
-                {
-                    Thread.Sleep(5000);
-                    var playerCount = _audioService.Players.GetPlayers<AutoPlayer>().Count();
-
-                    _discord.SetActivityAsync(playerCount > 0
-                        ? new Game($"Tocando música em {playerCount} players", ActivityType.CustomStatus)
-                        : new Game("Nenhum player ativo no momento", ActivityType.CustomStatus));
-
-                });
-
                 if (!result.IsSuccess)
                     await context.Channel.SendMessageAsync(result.ToString());
             }
