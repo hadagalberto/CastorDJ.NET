@@ -59,13 +59,6 @@ namespace CastorDJ.Modules
         [SlashCommand("play", description: "Toca uma música ou link do YouTube", runMode: RunMode.Async)]
         public async Task Play([Summary("música"), Autocomplete(typeof(MusicAutoCompleteHandler))] string query)
         {
-            var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
-
-            if (player is null)
-            {
-                return;
-            }
-
             var simpleTrack = await _audioService.Tracks
                 .LoadTrackAsync(query, TrackSearchMode.YouTube)
                 .ConfigureAwait(false);
@@ -79,6 +72,13 @@ namespace CastorDJ.Modules
             if (simpleTrack.Duration.TotalMinutes > 15)
             {
                 await RespondAsync("😖 Música muito longa!", ephemeral: true).ConfigureAwait(false);
+                return;
+            }
+
+            var player = await GetPlayerAsync(connectToVoiceChannel: true).ConfigureAwait(false);
+
+            if (player is null)
+            {
                 return;
             }
 
