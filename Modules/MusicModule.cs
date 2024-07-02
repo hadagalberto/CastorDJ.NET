@@ -72,7 +72,13 @@ namespace CastorDJ.Modules
 
             if (simpleTrack is null)
             {
-                await FollowupAsync("😖 No results.").ConfigureAwait(false);
+                await FollowupAsync("😖 Sem resultados.").ConfigureAwait(false);
+                return;
+            }
+
+            if (simpleTrack.Duration.TotalMinutes > 15)
+            {
+                await FollowupAsync("😖 Música muito longa!").ConfigureAwait(false);
                 return;
             }
 
