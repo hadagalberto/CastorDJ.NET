@@ -68,8 +68,8 @@ metrics:
     endpoint: /metrics
 
 sentry:
-  dsn: ""
-  environment: ""
+  dsn: "https://f829c3a41a3eb518d76db0d3ae9dee7b@o424912.ingest.us.sentry.io/4507578248855552"
+  environment: "prod"
 #  tags:
 #    some_key: some_value
 #    another_key: another_value
