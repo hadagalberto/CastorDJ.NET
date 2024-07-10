@@ -41,7 +41,7 @@ namespace CastorDJ.Player
         {
             Queue.Add(track);
 
-            _ = Task.Run(() => FindSimilarTracks(track.Track));
+            //_ = Task.Run(() => FindSimilarTracks(track.Track));
 
             if (QueueIndex == 0 && (Queue.Count() == 1 || IsPaused))
             {
