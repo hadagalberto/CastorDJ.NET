@@ -30,8 +30,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Sentry" Version="4.8.1" />
-    <PackageReference Include="Sentry.Profiling" Version="4.8.1" />
+    <PackageReference Include="Sentry" Version="4.9.0" />
+    <PackageReference Include="Sentry.Profiling" Version="4.9.0" />
     <PackageReference Include="YoutubeExplode" Version="6.3.16" />
   </ItemGroup>
 
