@@ -124,6 +124,9 @@ namespace CastorDJ.Player
                 Track = track,
             });
             await NextTrackAsync();
+
+            _ = Task.Run(UpdateFila);
+
             if (SimilarTracks.Count <= 3)
             {
                 _ = Task.Run(() => FindSimilarTracks(track));
@@ -146,6 +149,9 @@ namespace CastorDJ.Player
             }
             QueueIndex++;
             var track = Queue[QueueIndex];
+
+            _ = Task.Run(UpdateFila);
+
             await base.PlayAsync(track.Track);
         }
 
@@ -157,6 +163,9 @@ namespace CastorDJ.Player
             }
             QueueIndex--;
             var track = Queue[QueueIndex];
+
+            _ = Task.Run(UpdateFila);
+
             await base.PlayAsync(track.Track);
         }
 
@@ -167,6 +176,9 @@ namespace CastorDJ.Player
                 throw new InvalidOperationException("Não há mais músicas na fila.");
             }
             var track = Queue[QueueIndex];
+
+            _ = Task.Run(UpdateFila);
+
             await base.PlayAsync(track.Track);
         }
 
@@ -195,7 +207,7 @@ namespace CastorDJ.Player
 
         public ValueTask Shuffle()
         {
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 var currentTrack = Queue[QueueIndex];
                 Queue.RemoveAt(QueueIndex);
@@ -208,6 +220,8 @@ namespace CastorDJ.Player
                 Queue.AddRange(shuffledQueue);
 
                 QueueIndex = 0;
+
+                await UpdateFila();
             });
 
             return default;
@@ -215,13 +229,15 @@ namespace CastorDJ.Player
 
         public ValueTask ClearQueue()
         {
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 var currentTrack = Queue[QueueIndex];
                 Queue.Clear();
 
                 Queue.Add(currentTrack);
                 QueueIndex = 0;
+
+                await UpdateFila();
             });
             return default;
         }
@@ -242,46 +258,7 @@ namespace CastorDJ.Player
             {
                 _ = Task.Run(async () =>
                 {
-                    var queue = Queue.Skip(FilaSkip * 10).Take(10).ToList();
-                    var position = QueueIndex;
-
-                    var currenyFilaIndex = QueueIndex - FilaSkip * 10;
-
-                    if (currenyFilaIndex >= 10)
-                    {
-                        FilaSkip++;
-                    }
-
-                    var textoFila = new StringBuilder();
-
-                    textoFila.AppendLine("Fila atual:");
-
-                    for (int i = 0; i < queue.Count; i++)
-                    {
-                        bool current = false;
-
-                        if (i == position - FilaSkip * 10)
-                        {
-                            current = true;
-                        }
-
-                        var queuePosition = i + FilaSkip * 10;
-
-                        var item = queue[i];
-
-                        if (current)
-                        {
-                            textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
-                        }
-                        else
-                        {
-                            textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
-                        }
-                    }
-
-                    await FilaMessage.ModifyAsync(x => {
-                        x.Content = textoFila.ToString();
-                    }).ConfigureAwait(false);
+                    await UpdateFila();
                 });
             }
 
@@ -391,6 +368,47 @@ namespace CastorDJ.Player
             }
 
             SimilarTracks = similarTracks;
+        }
+
+        private async ValueTask UpdateFila()
+        {
+            if (FilaMessage != null)
+            {
+                var queue = Queue.Skip(FilaSkip * 10).Take(10).ToList();
+                var position = QueueIndex;
+
+                // get the current page of the queue
+                var queuePage = QueueIndex / 10;
+                var queuePages = (Queue.Count + 9) / 10;
+                var queuePageText = $"Página {queuePage + 1} de {queuePages}";
+
+                var textoFila = new StringBuilder();
+
+                textoFila.AppendLine("Fila atual:");
+                textoFila.AppendLine(queuePageText);
+
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    bool current = i == position - FilaSkip * 10;
+
+                    var queuePosition = i + FilaSkip * 10;
+
+                    var item = queue[i];
+
+                    if (current)
+                    {
+                        textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}** - Pedida por " + MentionUtils.MentionUser(item.Requester));
+                    }
+                    else
+                    {
+                        textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")} - Pedida por " + MentionUtils.MentionUser(item.Requester));
+                    }
+                }
+
+                await FilaMessage.ModifyAsync(x => {
+                    x.Content = textoFila.ToString();
+                }).ConfigureAwait(false);
+            }
         }
 
         public async ValueTask NotifyPlayerInactiveAsync(PlayerTrackingState trackingState, CancellationToken cancellationToken = default)
