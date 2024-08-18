@@ -13,19 +13,3 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the Docker image
         run: docker build . --file Dockerfile --tag castor-dj:$(date +%s)
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: SSH into Azure VM and deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.AZURE_VM_IP }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd CastorDJ.NET
-            git pull origin master
-            docker compose up --build -d
