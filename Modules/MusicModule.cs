@@ -13,7 +13,7 @@ using System.Text;
 namespace CastorDJ.Modules
 {
     [RequireContext(ContextType.Guild)]
-    [Description("Comandos de músicas \ud83c\udfb5")]
+    [Description("Comandos de músicas 🎵")]
     public class MusicModule : InteractionModuleBase<SocketInteractionContext>
     {
 
@@ -202,17 +202,14 @@ namespace CastorDJ.Modules
 
             var sendMessage = await FollowupAsync($"{playlist.Title} sendo adicionada à fila.", ephemeral: true).ConfigureAwait(false);
 
-            do { } while (player.Queue.Count == 0);
-
-            var position = player.QueueIndex;
-
-            var track = player.Queue.ElementAt(player.QueueIndex);
-
-            if (player.Queue.Count == 1 && player.ControlMessage == null)
+            // show first track when available without busy-wait
+            if (player.Queue.Count > 0 && player.ControlMessage == null)
             {
+                var position = player.QueueIndex;
+                var track = player.Queue.ElementAt(player.QueueIndex);
+
                 var description = new StringBuilder();
                 description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
-
                 description.AppendLine($"Adicionado por: {Context.User.Mention}");
 
                 var embed = new EmbedBuilder()
@@ -224,7 +221,6 @@ namespace CastorDJ.Modules
                     .Build();
 
                 await sendMessage.ModifyAsync(x => { x.Embed = embed; x.Components = component; x.Content = ""; }).ConfigureAwait(false);
-
                 player.ControlMessage = sendMessage;
             }
             else
@@ -245,7 +241,6 @@ namespace CastorDJ.Modules
             }
 
             await player.Shuffle();
-
             await RespondAsync("Fila aleatorizada!", ephemeral: true).ConfigureAwait(false);
         }
 
@@ -272,20 +267,21 @@ namespace CastorDJ.Modules
             var position = player.QueueIndex;
 
             var textoFila = new StringBuilder();
-
             textoFila.AppendLine("Fila atual:");
 
             for (int i = 0; i < queue.Count; i++)
             {
                 var item = queue[i];
+                var isCurrent = i == position - player.FilaSkip * 10;
+                var displayIndex = i + player.FilaSkip * 10;
 
-                if (i == position)
+                if (isCurrent)
                 {
-                    textoFila.AppendLine($"{i + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
+                    textoFila.AppendLine($"{displayIndex + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{i + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{displayIndex + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")} ");
                 }
             }
 
@@ -326,7 +322,6 @@ namespace CastorDJ.Modules
             var queue = player.SimilarTracks;
 
             var textoFila = new StringBuilder();
-
             textoFila.AppendLine("Fila de músicas similares:");
 
             for (int i = 0; i < queue.Count; i++)
@@ -349,21 +344,9 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            if (player.Pausado)
-            {
-                player.Pausado = false;
-                await player.ResumeAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                player.Pausado = true;
-                await player.PauseAsync().ConfigureAwait(false);
-            }
-
-            var position = player.QueueIndex;
+            await player.PlayPauseAsync().ConfigureAwait(false);
 
             var controlMessage = player.ControlMessage;
-
             var component = GetControlsComponent(player);
 
             if (controlMessage is not null)
@@ -397,20 +380,18 @@ namespace CastorDJ.Modules
                 await RespondAsync("Não há mais músicas na fila.", ephemeral: true).ConfigureAwait(false);
                 return;
             }
-            
-            if(player.CurrentItem is null || player.CurrentItem.Track is null)
+
+            if (player.CurrentItem is null || player.CurrentItem.Track is null)
             {
                 await RespondAsync("Fila vazia!", ephemeral: true).ConfigureAwait(false);
                 return;
             }
 
             var track = player.Queue.ElementAt(player.QueueIndex);
-
             var position = player.QueueIndex;
 
             var description = new StringBuilder();
             description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
-
             description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
             var embed = new EmbedBuilder()
@@ -448,7 +429,7 @@ namespace CastorDJ.Modules
             try
             {
                 await player.PreviousTrackAsync().ConfigureAwait(false);
-            }             
+            }
             catch (InvalidOperationException)
             {
                 await RespondAsync("Não há mais músicas para voltar.", ephemeral: true).ConfigureAwait(false);
@@ -460,7 +441,6 @@ namespace CastorDJ.Modules
 
             var description = new StringBuilder();
             description.AppendLine($"[{track.Track.Title}]({track.Track.Uri}) - {track.Track.Duration}");
-
             description.AppendLine($"Adicionado por: {MentionUtils.MentionUser(track.Requester)}");
 
             var embed = new EmbedBuilder()
@@ -482,7 +462,6 @@ namespace CastorDJ.Modules
             {
                 await RespondAsync(embed: embed, ephemeral: true).ConfigureAwait(false);
             }
-
         }
 
         [ComponentInteraction("previous_fila")]
@@ -508,29 +487,21 @@ namespace CastorDJ.Modules
             var position = player.QueueIndex;
 
             var textoFila = new StringBuilder();
-
             textoFila.AppendLine("Fila atual:");
 
             for (int i = 0; i < queue.Count; i++)
             {
-                bool current = false;
-
-                if (i == position - player.FilaSkip * 10)
-                {
-                    current = true;
-                }
-
+                var isCurrent = i == position - player.FilaSkip * 10;
                 var queuePosition = i + player.FilaSkip * 10;
-
                 var item = queue[i];
 
-                if (current)
+                if (isCurrent)
                 {
                     textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")} ");
                 }
             }
 
@@ -570,30 +541,21 @@ namespace CastorDJ.Modules
             var position = player.QueueIndex;
 
             var textoFila = new StringBuilder();
-
             textoFila.AppendLine("Fila atual:");
 
             for (int i = 0; i < queue.Count; i++)
             {
-                bool current = false;
-
-                // check if the current item is in the current page
-                if (i == position - player.FilaSkip * 10)
-                {
-                    current = true;
-                }
-
+                var isCurrent = i == position - player.FilaSkip * 10;
                 var queuePosition = i + player.FilaSkip * 10;
-
                 var item = queue[i];
 
-                if (current)
+                if (isCurrent)
                 {
                     textoFila.AppendLine($"{queuePosition + 1} 🔊     **[{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}**");
                 }
                 else
                 {
-                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")}");
+                    textoFila.AppendLine($"{queuePosition + 1} 🔈     [{item.Track.Title}]({item.Track.Uri}) - {item.Track.Duration.ToString(@"hh\:mm\:ss")} ");
                 }
             }
 
@@ -644,7 +606,7 @@ namespace CastorDJ.Modules
                 return;
             }
 
-            await player.SkipToAsync(position).ConfigureAwait(false);
+            await player.SkipToAsync(position - 1).ConfigureAwait(false);
 
             var track = player.Queue.ElementAt(player.QueueIndex);
 
@@ -658,7 +620,7 @@ namespace CastorDJ.Modules
                 .WithDescription(description.ToString())
                 .WithUrl(track.Track.Uri.ToString())
                 .WithImageUrl(track.Track.ArtworkUri.ToString())
-                .WithFooter($"Posição: {position} de {player.Queue.Count}")
+                .WithFooter($"Posição: {player.QueueIndex + 1} de {player.Queue.Count}")
                 .Build();
 
             var controlMessage = player.ControlMessage;
@@ -706,16 +668,26 @@ namespace CastorDJ.Modules
                 return null;
             }
 
+            // Clean up only older bot messages to avoid removing the latest track info message.
             if (result.Player.Queue.Count == 0)
             {
                 _ = Task.Run(async () =>
                 {
+                    var cutoff = DateTimeOffset.UtcNow.AddMinutes(-2);
                     var messages = await Context.Channel.GetMessagesAsync(100).FlattenAsync();
+                    var botMessages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id);
 
-                    messages = messages.Where(x => x.Author.Id == Context.Client.CurrentUser.Id).ToList();
-
-                    foreach (var message in messages)
+                    foreach (var message in botMessages)
                     {
+                        // keep recent messages and the control message if exists
+                        if (message.Timestamp >= cutoff)
+                        {
+                            continue;
+                        }
+                        if (result.Player.ControlMessage != null && message.Id == result.Player.ControlMessage.Id)
+                        {
+                            continue;
+                        }
                         await message.DeleteAsync();
                     }
                 });
